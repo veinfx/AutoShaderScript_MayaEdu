@@ -1,133 +1,97 @@
 '''
 @name: soojin_lee
 @date: 2020-08-19
+@adjusted_date: 2020-12-20
 '''
 
+import glob
 import maya.cmds as cmds
-import pymel.core as pm
+
+import ShaderSetup as shader_setup
 
 
-class MainWindow():
+class MainWindow(object):
     def __init__(self):
-        win = pm.window(title='Auto Shader Setting')
-        main_layout = pm.rowColumnLayout(nr=13)
+        self._map_dict = {'base': None, 'height': None, 'metallic': None, 'normal': None, 'roughness': None}
+        self.set_window()
 
-        self.label_rough = pm.text(l='Rough Texture')
-        pm.setParent(main_layout)
-        rough_layout = pm.rowLayout(nc=2)        
-        self.rough_path = pm.textFieldGrp()
-        self.btn_rough = pm.button(l='BROWSE', c=self._get_rough_path)        
-        pm.setParent(main_layout)
-        self.rough_color = self.create_colorspace_menu()
+    def set_window(self):
+        window_id = "autoShaderSetting"
 
-        self.label_base = pm.text(l='Base Texture')        
-        pm.setParent(main_layout)
-        base_layout = pm.rowLayout(nc=2)        
-        self.base_path = pm.textFieldGrp()
-        self.btn_base = pm.button(l='BROWSE', c=self._get_base_path)        
-        pm.setParent(main_layout)
-        self.base_color = self.create_colorspace_menu()
+        if cmds.window(window_id, ex=True):
+            cmds.deleteUI(window_id)
 
-        self.label_normal = pm.text(l='Normal Texture')        
-        pm.setParent(main_layout)
-        normal_layout = pm.rowLayout(nc=2)        
-        self.normal_path = pm.textFieldGrp()
-        self.btn_normal = pm.button(l='BROWSE', c=self._get_normal_path)        
-        pm.setParent(main_layout)
-        self.normal_color = self.create_colorspace_menu()
+        window = cmds.window(window_id, t='Auto Shader Setting')
+        cmds.columnLayout(adj=True, p=window)
 
-        self.label_metal = pm.text(l='Metal Texture')        
-        pm.setParent(main_layout)
-        metal_layout = pm.rowLayout(nc=2)        
-        self.metal_path = pm.textFieldGrp()
-        self.btn_metal = pm.button(l='BROWSE', c=self._get_metal_path)        
-        pm.setParent(main_layout)
-        self.metal_color = self.create_colorspace_menu()
+        self.create_object_viewer()
 
-        self.btn_main = pm.button(l='RUN', bgc=(0.3, 0.6, 0.1), c=self._create_shader_nodes)
+        self.root_path = None
+        cmds.textField('rootDirPath')
+        self.btn_browser = cmds.button(l='BROWSE', c=self.get_path)
 
-        win.show()
+        self.label_base = cmds.text(l='Base Texture')
+        self.base_color = self.create_colorspace_menu('base')
 
-    def create_colorspace_menu(self):
-        colorspace_items = ('ARRI LogC', 'camera Rec 709', 'Sony SLog2', 
-                            'Log film scam (ADX)', 'Log-to-Lin (cineon)',
-                            'Log-to-Lin (jzp)', 'Raw', 'ACES2065-1', 'ACEScg',
-                            'scene-linear CIE XYZ', 'scene-linear DCI-P3',
-                            'scene-linear Rec 2020', 'scene-linear Rec709/sRGB',
-                            'gamma 1.8 Rec 709', 'gamma 2.2 Rec 709', 'gamma 2.4 Rec 709 (video)',
-                            'sRGB')        
-        menu = pm.optionMenuGrp(l='COLORSPACE')
-        for item in colorspace_items:
-            pm.menuItem(l=item)        
+        self.label_height = cmds.text(l='Height Texture')
+        self.height_color = self.create_colorspace_menu('height')
+
+        self.label_rough = cmds.text(l='Rough Texture')
+        self.rough_color = self.create_colorspace_menu('roughness')
+
+        self.label_normal = cmds.text(l='Normal Texture')
+        self.normal_color = self.create_colorspace_menu('normal')
+
+        self.label_metal = cmds.text(l='Metallic Texture')
+        self.metal_color = self.create_colorspace_menu('metallic')
+
+        self.btn_main = cmds.button(l='RUN', bgc=(0.3, 0.6, 0.1), c=self.create_shader_nodes)
+
+        cmds.showWindow(window)
+
+    def create_object_viewer(self, *args):
+        object_mesh = cmds.ls(dag=True, s=True, typ='mesh')
+        transforms = [cmds.listRelatives(model, p=True)[0] for model in object_mesh if cmds.nodeType(model) != 'camera']
+        cmds.textScrollList('objectViewer', a=transforms, ams=True)
+
+    def create_colorspace_menu(self, color_type):
+        colorspace = {'arri_logc': 'ARRI LogC', 'camera_rec709': 'camera Rec 709',
+                      'sony_slog2': 'Sony SLog2', 'log_film_scam': 'Log film scam (ADX)',
+                      'cineon': 'Log-to-Lin (cineon)', 'jzp': 'Log-to-Lin (jzp)',
+                      'raw': 'Raw', 'aces2065_1': 'ACES2065-1', 'aces_cg': 'ACEScg',
+                      'cie_xyz': 'scene-linear CIE XYZ', 'dci_p3': 'scene-linear DCI-P3',
+                      'rec2020': 'scene-linear Rec 2020',
+                      'rec709_srgb': 'scene-linear Rec709/sRGB', 'gamma1.8': 'gamma 1.8 Rec 709',
+                      'gamma2.2': 'gamma 2.2 Rec 709', 'gamma2.4': 'gamma 2.4 Rec 709 (video)',
+                      'sRGB': 'sRGB'}
+
+        default_set = {'base': 'sRGB', 'height': 'Raw', 'metallic': 'Raw', 'normal': 'sRGB', 'roughness': 'Raw'}
+        menu = cmds.optionMenu(color_type, l='COLORSPACE', en=True)
+        for key in colorspace.keys():
+            cmds.menuItem(key, l=colorspace[key])
+        cmds.optionMenu(color_type, e=True, v=default_set[color_type])
         return menu
 
-    def _get_rough_path(self, *args):
-        return self.get_rough_path()
+    def get_path(self, *args):
+        file_name = cmds.fileDialog2(fm=3)[0]
+        cmds.textField('rootDirPath', e=True, tx=str(file_name))
+        self.root_path = cmds.textField('rootDirPath', q=True, tx=True)
 
-    def get_rough_path(self):
-        file_name = pm.fileDialog()
-        self.rough_path.setText(file_name)
+        maps = ['Base', 'base', 'Height', 'height', 'Metallic', 'metallic',
+                     'Normal', 'normal', 'Roughness', 'roughness']
+        map_list = glob.glob('{}/*_{}*'.format(self.root_path, maps))
 
-    def _get_base_path(self, *args):
-        return self.get_base_path()
+        objects = cmds.textScrollList('objectViewer', q=True, si=True)
+        size = len(maps)
+        for i in range(0, size, 2):
+            map_path = filter(lambda x: maps[i] in x or maps[i+1] in x, map_list)
+            map_files = filter(lambda x: '1001' in x, map_path)
+            self._map_dict[maps[i+1]] = map_files
+        for key in self._map_dict.keys():
+            print self._map_dict[key]
 
-    def get_base_path(self):
-        file_name = pm.fileDialog()
-        self.base_path.setText(file_name)
 
-    def _get_normal_path(self, *args):
-        return self.get_normal_path()
-
-    def get_normal_path(self):
-        file_name = pm.fileDialog()
-        self.normal_path.setText(file_name)
-
-    def _get_metal_path(self, *args):
-        return self.get_metal_path()
-
-    def get_metal_path(self):
-        file_name = pm.fileDialog()
-        self.metal_path.setText(file_name)
-
-    def create_texture_file_node(self, file_name):
-        file_node = cmds.shadingNode('file', at=True, icm=True)
-        file_node = cmds.ls(file_node)[0]
-        cmds.setAttr('{}.fileTextureName'.format(file_node), file_name, typ='string')    
-        tex_node = cmds.shadingNode('place2dTexture', au=True)
-        tex_attrs = ('outUV', 'outUvFilterSize')
-        file_attrs = ('uvCoord', 'uvFilterSize')
-        for i in range(2):
-            cmds.connectAttr('{}.{}'.format(tex_node, tex_attrs[i]), '{}.{}'.format(file_node, file_attrs[i]))
-        common_attrs = ('vertexCameraOne', 'vertexUvOne', 'vertexUvThree', 'vertexUvTwo', 'coverage', \
-                        'mirrorU', 'mirrorV', 'noiseUV', 'offset', 'repeatUV', 'rotateFrame', 'rotateUV', \
-                        'stagger', 'translateFrame', 'wrapU', 'wrapV')
-        for attr in common_attrs:
-            cmds.connectAttr('{}.{}'.format(tex_node, attr), '{}.{}'.format(file_node, attr))
-        return file_node
-
-    def _create_shader_nodes(self, *args):
-        return self.create_shader_nodes()
-
-    def create_shader_nodes(self):
-        img_rough = self.rough_path.getText()
-        img_base = self.base_path.getText()
-        img_normal = self.normal_path.getText()
-        img_metal = self.metal_path.getText()
-
-        rough_node = self.create_texture_file_node(img_rough)
-        base_node = self.create_texture_file_node(img_base)
-        normal_node = self.create_texture_file_node(img_normal)
-        metal_node = self.create_texture_file_node(img_metal) 
-
-        vray_node = cmds.shadingNode('VRayMtl', au=True)
-        shading_engine = cmds.shadingNode('shadingEngine', n='VRayMtl1SG', au=True)
-
-        cmds.connectAttr('{}.outAlpha'.format(rough_node), '{}.reflectionGlossiness'.format(vray_node))       
-        cmds.connectAttr('{}.outColor'.format(base_node), '{}.color'.format(vray_node))       
-        cmds.connectAttr('{}.outColor'.format(normal_node), '{}.bumpMap'.format(vray_node))       
-        cmds.connectAttr('{}.outAlpha'.format(metal_node), '{}.metalness'.format(vray_node))           
-
-        cmds.connectAttr('{}.outColor'.format(vray_node), '{}.surfaceShader'.format(shading_engine))
-        
-
-main = MainWindow()                     
+    def create_shader_nodes(self, *args):
+        objects = cmds.textScrollList('objectViewer', q=True, si=True)
+        for model in objects:
+            shader_setup.create_shaders(model, self._map_dict)
