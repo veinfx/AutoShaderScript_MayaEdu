@@ -5,6 +5,7 @@
 '''
 
 import glob
+import os
 import maya.cmds as cmds
 
 import ShaderSetup as shader_setup
@@ -12,7 +13,9 @@ import ShaderSetup as shader_setup
 
 class MainWindow(object):
     def __init__(self):
-        self._map_dict = {'base': None, 'height': None, 'metallic': None, 'normal': None, 'roughness': None}
+        self._map_dict = {'base': None, 'height': None, 'metallic': None, 'normal': None, 'roughness': None,
+                          'anisotropy_angle': None, 'anisotropy_level': None, 'emissive': None}
+        self._plus_color_switch = False
         self.set_window()
 
     def set_window(self):
@@ -28,30 +31,43 @@ class MainWindow(object):
 
         self.root_path = None
         cmds.textField('rootDirPath')
-        self.btn_browser = cmds.button(l='BROWSE', c=self.get_path)
+        cmds.button(l='BROWSE', c=self.get_path)
 
-        self.label_base = cmds.text(l='Base Texture')
-        self.base_color = self.create_colorspace_menu('base')
+        cmds.text(l='Base Texture')
+        self.create_colorspace_menu('base')
 
-        self.label_height = cmds.text(l='Height Texture')
-        self.height_color = self.create_colorspace_menu('height')
+        cmds.text(l='Height Texture')
+        self.create_colorspace_menu('height')
 
-        self.label_rough = cmds.text(l='Rough Texture')
-        self.rough_color = self.create_colorspace_menu('roughness')
+        cmds.text(l='Rough Texture')
+        self.create_colorspace_menu('roughness')
 
-        self.label_normal = cmds.text(l='Normal Texture')
-        self.normal_color = self.create_colorspace_menu('normal')
+        cmds.text(l='Normal Texture')
+        self.create_colorspace_menu('normal')
 
-        self.label_metal = cmds.text(l='Metallic Texture')
-        self.metal_color = self.create_colorspace_menu('metallic')
+        cmds.text(l='Metallic Texture')
+        self.create_colorspace_menu('metallic')
 
-        self.btn_main = cmds.button(l='RUN', bgc=(0.3, 0.6, 0.1), c=self.create_shader_nodes)
+        cmds.text(l='AnisotropyAngle Texture')
+        self.create_colorspace_menu('anisotropy_angle')
+
+        cmds.text(l='AnisotropyLevel Texture')
+        self.create_colorspace_menu('anisotropy_level')
+
+        cmds.text(l='Emissive Texture')
+        self.create_colorspace_menu('emissive')
+
+        cmds.button(l='RUN', bgc=(0.3, 0.6, 0.1), c=self.create_shader_nodes)
 
         cmds.showWindow(window)
 
     def create_object_viewer(self, *args):
         object_mesh = cmds.ls(dag=True, s=True, typ='mesh')
-        transforms = [cmds.listRelatives(model, p=True)[0] for model in object_mesh if cmds.nodeType(model) != 'camera']
+        transforms = []
+        for model in object_mesh:
+            node = cmds.listRelatives(model, p=True)[0]
+            if cmds.nodeType(model) != 'camera' and node not in transforms:
+                transforms.append(node)
         cmds.textScrollList('objectViewer', a=transforms, ams=True)
 
     def create_colorspace_menu(self, color_type):
@@ -65,7 +81,8 @@ class MainWindow(object):
                       'gamma2.2': 'gamma 2.2 Rec 709', 'gamma2.4': 'gamma 2.4 Rec 709 (video)',
                       'sRGB': 'sRGB'}
 
-        default_set = {'base': 'sRGB', 'height': 'Raw', 'metallic': 'Raw', 'normal': 'sRGB', 'roughness': 'Raw'}
+        default_set = {'base': 'sRGB', 'height': 'Raw', 'metallic': 'Raw', 'normal': 'Raw', 'roughness': 'Raw',
+                       'anisotropy_angle': 'Raw', 'anisotropy_level': 'Raw', 'emissive': 'sRGB'}
         menu = cmds.optionMenu(color_type, l='COLORSPACE', en=True)
         for key in colorspace.keys():
             cmds.menuItem(key, l=colorspace[key])
@@ -77,21 +94,20 @@ class MainWindow(object):
         cmds.textField('rootDirPath', e=True, tx=str(file_name))
         self.root_path = cmds.textField('rootDirPath', q=True, tx=True)
 
-        maps = ['Base', 'base', 'Height', 'height', 'Metallic', 'metallic',
-                     'Normal', 'normal', 'Roughness', 'roughness']
+        maps = ['Base', 'base', 'Height', 'height', 'Metallic', 'metallic', 'Normal', 'normal', 'Roughness',
+                'roughness', 'AnisotropyAngle', 'anisotropy_angle', 'AnisotropyLevel', 'anisotropy_level',
+                'Emissive', 'emissive']
         map_list = glob.glob('{}/*_{}*'.format(self.root_path, maps))
 
         objects = cmds.textScrollList('objectViewer', q=True, si=True)
         size = len(maps)
         for i in range(0, size, 2):
             map_path = filter(lambda x: maps[i] in x or maps[i+1] in x, map_list)
-            map_files = filter(lambda x: '1001' in x, map_path)
-            self._map_dict[maps[i+1]] = map_files
-        for key in self._map_dict.keys():
-            print self._map_dict[key]
-
+            self._map_dict[maps[i+1]] = map_path
 
     def create_shader_nodes(self, *args):
         objects = cmds.textScrollList('objectViewer', q=True, si=True)
         for model in objects:
-            shader_setup.create_shaders(model, self._map_dict)
+            shader_setting = shader_setup.ShaderSetter(model, self._map_dict)
+            shader_setting.create_shaders()
+            shader_setting.create_dismap()
