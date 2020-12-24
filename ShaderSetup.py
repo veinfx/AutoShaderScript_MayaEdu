@@ -15,22 +15,12 @@ class ShaderSetter(object):
         self._maps = maps
 
     def check_sequential_texture(self, color_type, shader_name):
-        non_udim_pattern = re.compile('(\w*\W*)_(\w*\W*)_(\D*).png')
-        udim_pattern = re.compile('(\w*\W*)_(\w*\W*)_(\D*).(\d{4}).png')
-        non_udim_checker = re.search(non_udim_pattern, self._maps[color_type][0])
-        udim_checker = re.search(udim_pattern, self._maps[color_type][0])
-        tx_type = 'udim'
-        if non_udim_checker is not None and shader_name in self._maps[color_type][0]:
+        texture = [name for name in self._maps[color_type] if shader_name in name]
+        if len(texture) == 1:
+            print '----  non udim model: {}  ----'.format(self._model)
             tx_type = 'non_udim'
-        if udim_checker is not None and shader_name in self._maps[color_type][0]:
-            checker = re.search(udim_pattern, self._maps[color_type][0]).groups()
-            tmp = '_'.join(checker).replace(checker[-1], str(int(checker[-1])+1))
-            dir_path = os.path.dirname(self._maps[color_type][0])
-            tmp = os.path.join(dir_path, tmp)
-            if os.path.exists(tmp):
-                tx_type = 'udim'
-            else:
-                tx_type = 'non_udim'
+        else:
+            tx_type = 'udim'
         return tx_type
 
     def create_texture_file_node(self, color_type, shader_info):
