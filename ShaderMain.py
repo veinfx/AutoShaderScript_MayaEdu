@@ -112,3 +112,6 @@ class MainWindow(object):
             shader_setting.find_shader()
             shader_setting.create_shaders()
             shader_setting.create_dismap()
+        opened_ui = cmds.lsUI(wnd=True)
+        if 'expressionEditorWin' in opened_ui:
+            cmds.deleteUI('expressionEditorWin')
