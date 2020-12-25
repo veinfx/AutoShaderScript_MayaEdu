@@ -63,16 +63,18 @@ class ShaderSetter(object):
         cmds.setAttr('{}.bumpMapType'.format(self._vray_shader), 1)
         cmds.setAttr('{}.reflectionColor'.format(self._vray_shader), 1.0, 1.0, 1.0, typ='double3')
 
-    def connect_attrs(self, nodes):
+    def connect_attrs(self, nodes=None, aniso_rotation=None, aniso_level=None, emissive=None):
         cmds.connectAttr('{}.outColor'.format(nodes[1]), '{}.color'.format(self._vray_shader))
         cmds.connectAttr('{}.outAlpha'.format(nodes[2]), '{}.displacement'.format(nodes[0]))
         cmds.connectAttr('{}.outAlpha'.format(nodes[5]), '{}.reflectionGlossiness'.format(self._vray_shader))
         cmds.connectAttr('{}.outColor'.format(nodes[4]), '{}.bumpMap'.format(self._vray_shader))
         cmds.connectAttr('{}.outAlpha'.format(nodes[3]), '{}.metalness'.format(self._vray_shader))
-        if len(nodes) > 6:
-            cmds.connectAttr('{}.outColor'.format(nodes[8]), '{}.illumColor'.format(self._vray_shader))
-            cmds.connectAttr('{}.outAlpha'.format(nodes[7]), '{}.anisotropy'.format(self._vray_shader))
-            cmds.connectAttr('{}.outAlpha'.format(nodes[6]), '{}.anisotropyRotation'.format(self._vray_shader))
+        if emissive is not None:
+            cmds.connectAttr('{}.outColor'.format(emissive), '{}.illumColor'.format(self._vray_shader))
+        if aniso_level is not None:
+            cmds.connectAttr('{}.outAlpha'.format(aniso_level), '{}.anisotropy'.format(self._vray_shader))
+        if aniso_rotation is not None:
+            cmds.connectAttr('{}.outAlpha'.format(aniso_rotation), '{}.anisotropyRotation'.format(self._vray_shader))
 
     def create_shaders(self):
         model = cmds.ls(self._model, fl=True)[0]
@@ -88,14 +90,18 @@ class ShaderSetter(object):
 
         dismap_node = cmds.shadingNode('displacementShader', asShader=True)
 
-        nodes = [dismap_node, base_node, height_node, metal_node, normal_node, rough_node]
-        for addition in (anisotropy_angle_node, anisotropy_level_node, emissive_node):
-            if addition is None:
-                del addition
-            else:
-                nodes.append(addition)
-
-        self.connect_attrs(nodes)
+        node_list = [dismap_node, base_node, height_node, metal_node, normal_node, rough_node]
+        aniso_r_data, aniso_l_data, emiss_data = anisotropy_angle_node, anisotropy_level_node, emissive_node
+        if anisotropy_angle_node is None:
+            del anisotropy_angle_node
+            aniso_r_data = None
+        if anisotropy_level_node is None:
+            del anisotropy_level_node
+            aniso_l_data = None
+        if emissive_node is None:
+            del emissive_node
+            emiss_data = None
+        self.connect_attrs(nodes=node_list, aniso_rotation=aniso_r_data, aniso_level=aniso_l_data, emissive=emiss_data)
 
         cmds.connectAttr('{}.displacement'.format(dismap_node), '{}.displacementShader'.format(self._sg_node))
         cmds.connectAttr('{}.outColor'.format(self._vray_shader), '{}.surfaceShader'.format(self._sg_node), f=True)
