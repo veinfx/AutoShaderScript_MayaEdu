@@ -1,8 +1,8 @@
-'''
+"""
 @name: soojin_lee
 @date: 2020-08-19
 @adjusted_date: 2020-12-20
-'''
+"""
 
 import glob
 import os
@@ -24,7 +24,7 @@ class MainWindow(object):
         if cmds.window(window_id, ex=True):
             cmds.deleteUI(window_id)
 
-        window = cmds.window(window_id, t='Auto Shader Setting')
+        window = cmds.window(window_id, t='Substance Painter to Vray for Maya')
         cmds.columnLayout(adj=True, p=window)
 
         self.create_object_viewer()
@@ -109,5 +109,6 @@ class MainWindow(object):
         objects = cmds.textScrollList('objectViewer', q=True, si=True)
         for model in objects:
             shader_setting = shader_setup.ShaderSetter(model, self._map_dict)
+            shader_setting.find_shader()
             shader_setting.create_shaders()
             shader_setting.create_dismap()
