@@ -1,0 +1,41 @@
+global proc vrayDispSetting(string $vrayDisp){
+  vray addAttributesFromGroup $vrayDisp vray_subquality 1;
+  vrayAddAttr $vrayDisp vraySeparator_vray_subquality; 
+  vrayAddAttr $vrayDisp vrayOverrideGlobalSubQual; 
+  vrayAddAttr $vrayDisp vrayViewDep; 
+  vrayAddAttr $vrayDisp vrayEdgeLength; 
+  vrayAddAttr $vrayDisp vrayMaxSubdivs;
+  setUITemplate -pst attributeEditorTemplate;
+
+  vray addAttributesFromGroup $vrayDisp vray_displacement 1;
+  vrayAddAttr $vrayDisp vraySeparator_vray_displacement; 
+  vrayAddAttr $vrayDisp vrayDisplacementNone; 
+  vrayAddAttr $vrayDisp vrayDisplacementStatic; 
+  vrayAddAttr $vrayDisp vrayDisplacementType; 
+  vrayAddAttr $vrayDisp vrayDisplacementAmount; 
+  vrayAddAttr $vrayDisp vrayDisplacementShift; 
+  vrayAddAttr $vrayDisp vrayDisplacementKeepContinuity; 
+  vrayAddAttr $vrayDisp vrayEnableWaterLevel; 
+  vrayAddAttr $vrayDisp vrayWaterLevel; 
+  vrayAddAttr $vrayDisp vrayDisplacementCacheNormals; 
+  vrayAddAttr $vrayDisp vray2dDisplacementResolution; 
+  vrayAddAttr $vrayDisp vray2dDisplacementPrecision; 
+  vrayAddAttr $vrayDisp vray2dDisplacementTightBounds; 
+  vrayAddAttr $vrayDisp vray2dDisplacementMultiTile; 
+  vrayAddAttr $vrayDisp vray2dDisplacementFilterTexture; 
+  vrayAddAttr $vrayDisp vray2dDisplacementFilterBlur; 
+  vrayAddAttr $vrayDisp vrayDisplacementUseBounds; 
+  vrayAddAttr $vrayDisp vrayDisplacementMinValue; 
+  vrayAddAttr $vrayDisp vrayDisplacementMaxValue;
+  setUITemplate -pst attributeEditorTemplate;
+  setAttr ($vrayDisp+".vrayEdgeLength") 1;
+  setAttr ($vrayDisp+".vrayMaxSubdivs") 40;
+  setAttr ($vrayDisp+".vrayDisplacementAmount") 0.005;
+
+  expressionEditor EE $vrayDisp "vrayDisplacementShift";
+  EEapplyCB;
+  string $exp = $vrayDisp+".vrayDisplacementShift = -"+$vrayDisp+".vrayDisplacementAmount/2;";
+  expression -s $exp -o $vrayDisp -ae 1 -uc all ;
+  EEnodeAdded $vrayDisp;
+  EEexpressionCreated $vrayDisp;
+}    
