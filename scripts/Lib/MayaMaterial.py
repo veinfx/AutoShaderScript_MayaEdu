@@ -76,7 +76,7 @@ class TextureFileManager:
         if name_set.intersection(self.FILE_TYPE):
             self._file_type = os.path.splitext(value)[-1]
         else:
-            print("Error: This can't be defined as a file type! Check your values! - {0}".format(value))
+            print("Error: This can't be defined as a <file type>! Check your values! - {0}".format(value))
 
     def is_udim(self):
         if '.' in self._name:
