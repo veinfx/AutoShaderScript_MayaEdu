@@ -4,15 +4,18 @@ import os
 
 from ..UI import Widgets
 from ..UI import SettingDialog
-from ..Lib import MayaMaterial
+from ..Lib import MaterialGenerator
 from ..Lib.Log import MaterialStatusLog
 
 
 class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
+    LOG = MaterialStatusLog("MayaMaterialHandler:Interface")
+
     def __init__(self):
         super(MaterialHandlerWindow, self).__init__()
         self._models = []
-        self._caches = []
+        self._materials = []
+        self._colorspaces = []
         self._setting = SettingDialog.SettingDialogWidget()
         self._dir_path = None
 
@@ -25,16 +28,16 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         self.btn_run.clicked.connect(self.run)
 
     def get_texture_path(self):
-        MaterialStatusLog.message("Get Texture Path")
+        self.LOG.message("Get Texture Path")
         path = Widgets.QFileDialog.getOpenFileName()
         if path:
             self._node.edit_file_path.setText(path)
-            MaterialStatusLog.message("Completed Getting Texture Path: {}".format(path))
+            self.LOG.message("Completed Getting Texture Path: {}".format(path))
         else:
-            MaterialStatusLog.error("Failed Getting Texture Path")
+            self.LOG.error("Failed Getting Texture Path")
 
     def get_directory(self):
-        MaterialStatusLog.message("Get Directory Path")
+        self.LOG.message("Get Directory Path")
         self._dir_path = SettingDialog.QFileDialog.getExistingDirectory()
         if self._dir_path:
             self._setting.edit_root.setText(self._dir_path)
@@ -43,7 +46,7 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
             MaterialStatusLog.error("Failed Getting Directory Path")
 
     def setup_base(self):
-        MaterialStatusLog.message("Set Up Preparation For Base Setting")
+        self.LOG.message("Set Up Preparation For Base Setting")
         for file_name in os.listdir(self._dir_path):
             node = Widgets.MaterialNodeWidget()
             node.setup_widget(self)
@@ -51,19 +54,20 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
             self._caches
 
     def run(self):
-        MaterialStatusLog.message("Run Creation Of Materials")
+        self.LOG.message("Run Creation Of Materials")
         result = False
         message = "There Are No Targets"
         _len = len(self._models)
         for i in range(_len):
-            next(MayaMaterial.assign_materials(self._models[i], self._caches[i]))
+            assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[i], self._colorspaces[i])
+            next(assigner.assign_materials())
             if result:
+                assigner.set_ui()
                 message = "Completed Creation Of Materials"
             else:
                 message = "Failed Creation Of Materials"
                 break
         if result:
-            MayaMaterial.set_ui()
             Widgets.QMessageBox.information(self, "Completed", message, Widgets.QMessageBox.Ok)
         else:
             Widgets.QMessageBox.critical(self, "Failed", message, Widgets.QMessageBox.Ok)

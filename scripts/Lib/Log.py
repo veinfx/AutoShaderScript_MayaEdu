@@ -4,7 +4,8 @@ import logging
 
 
 class MaterialStatusLog:
-	def __init__(self):
+	def __init__(self, name):
+		self._name = name
 		self._logger = logging.getLogger()
 		self._stream_handler = logging.StreamHandler()
 
@@ -17,10 +18,10 @@ class MaterialStatusLog:
 		logging.info(val)
 
 	def exception(self, err_type, val):
-		logging.exception("{}:{}".format(err_type, val))
+		logging.exception("{0} - {1}:{2}".format(self._name, err_type, val))
 
 	def error(self, stop_point, val):
-		logging.error("{}:{}".format(stop_point, val))
+		logging.error("{0} - {1}:{2}".format(self._name, stop_point, val))
 
 	def critical(self, stop_point, val):
-		logging.critical("{}:{}".format(stop_point, val))
+		logging.critical("{0} - {1}:{2}".format(self._name, stop_point, val))
