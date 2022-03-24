@@ -22,10 +22,11 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         self.setup_widget(self)
         self._setting.setup_widget(self)
 
-        self.act_setting.triggered.connect(self._setting.show)
-        self._setting.btn_browser.clicked.connect(self.get_directory)
-        self._setting.btn_setup.clicked.connect(self.setup_base)
-        self.btn_run.clicked.connect(self.run)
+        self.btn_assign.clicked.connect()
+        self.btn_setting.clicked.connect()
+        self.btn_find.clicked.connect()
+        self.btn_load.clicked.connect()
+        self.btn_define.clicked.connect()
 
     def get_texture_path(self):
         self.LOG.message("Get Texture Path")
