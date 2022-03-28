@@ -2,11 +2,12 @@
 
 from PySide2.QtCore import (QMetaObject, QCoreApplication, QObject)
 from PySide2.QtWidgets import (QTableWidget, QCheckBox, QDialog, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout,
-                               QComboBox, QLabel)
+                               QComboBox, QLabel, QFileDialog)
 
 
 class MaterialTable(QTableWidget):
     def __init__(self):
+        super(MaterialTable, self).__init__()
         self.set_header()
 
     def set_header(self):
@@ -59,17 +60,14 @@ class SettingDialogWidget(QDialog):
         top_layout.addWidget(self.check_aces)
         top_layout.addLayout(path_layout)
         top_layout.addWidget(self.btn_load)
+        layout.addWidget(self.label_setting)
         layout.addLayout(top_layout)
         layout.addWidget(self.table_material)
         layout.addWidget(self.btn_define)
 
-        self.set_title_label()
         self.setLayout(layout)
         self.retranslate_widget(dialog)
         QMetaObject.connectSlotsByName(dialog)
-
-    def set_title_label(self):
-        return
 
     def retranslate_widget(self, dialog):
         _objTranslate = QObject().tr
@@ -77,6 +75,7 @@ class SettingDialogWidget(QDialog):
         init_obj_name = _objTranslate("SettingDialog")
         dialog.setWindowTitle(_translate(init_obj_name, _objTranslate("Material Settings")))
         self.label_setting.setText(_translate(init_obj_name, _objTranslate("Material Settings")))
+        self.check_aces.setText(_translate(init_obj_name, _objTranslate("ACES")))
         self.edit_directory.setText(_translate(init_obj_name, _objTranslate("Directory Path")))
         self.btn_find.setText(_translate(init_obj_name, _objTranslate("FIND")))
         self.edit_name_prefix.setText(_translate(init_obj_name, _objTranslate("Name Prefix")))

@@ -4,6 +4,7 @@ import os
 
 from ..UI import Widgets
 from ..UI import SettingDialog
+
 from ..Lib import MaterialGenerator
 from ..Lib.Log import MaterialStatusLog
 
@@ -22,18 +23,27 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         self.setup_widget(self)
         self._setting.setup_widget(self)
 
-        self.btn_assign.clicked.connect()
-        self.btn_setting.clicked.connect()
-        self.btn_find.clicked.connect()
-        self.btn_load.clicked.connect()
-        self.btn_define.clicked.connect()
+        self.btn_assign.clicked.connect(self.run)
+        self.btn_setting.clicked.connect(self.get_setting_dialog)
+        self._setting.btn_find.clicked.connect(self.get_directory)
+        self._setting.btn_load.clicked.connect(self.create_material_table)
+        self._setting.btn_define.clicked.connect(self.setup_base)
 
-    def get_texture_path(self):
-        self.LOG.message("Get Texture Path")
-        path = Widgets.QFileDialog.getOpenFileName()
-        if path:
-            self._node.edit_file_path.setText(path)
-            self.LOG.message("Completed Getting Texture Path: {}".format(path))
+    def get_setting_dialog(self):
+        self._setting.show()
+
+    def _get_materials(self):
+        for file_name in os.listdir(self._dir_path):
+            # Completed 220328. Start point.
+            tex_manager = ''
+        return
+
+    def create_material_table(self):
+        self.LOG.message("Create Material Table")
+        if self.edit_directory:
+            self._get_materials()
+            self._setting.table_material.set_rows()
+            self.LOG.message("Completed Creation of Material Table")
         else:
             self.LOG.error("Failed Getting Texture Path")
 
