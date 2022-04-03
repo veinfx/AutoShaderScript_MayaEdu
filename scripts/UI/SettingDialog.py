@@ -1,20 +1,25 @@
 # coding= utf-8
 
+from functools import partial
 from PySide2.QtCore import (QMetaObject, QCoreApplication, QObject)
 from PySide2.QtWidgets import (QTableWidget, QCheckBox, QDialog, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout,
-                               QComboBox, QLabel, QFileDialog)
+                               QComboBox, QLabel, QFileDialog, QTableWidgetItem)
 
 
 class MaterialTable(QTableWidget):
     def __init__(self):
         super(MaterialTable, self).__init__()
-        self.set_header()
 
     def set_header(self):
-        header = ["Name", "UDIM", "Path", "Load", "Colorspace", "DISMAP"]
-        self.setHorizontalHeaderLabels(header)
+        header = ["Name", "UDIM", "Path", "File Path", "Colorspace", "DISMAP"]
+        len_ = len(header)
+        for i in range(len_):
+            header_item = QTableWidgetItem(header[i])
+            self.setHorizontalHeaderItem(i, header_item)
 
-    def set_row(self, index):
+    def set_row(self, index, name, udim, file_path):
+        item_name = QTableWidgetItem(name)
+        item_path = QTableWidgetItem(file_path)
         check_udim = QCheckBox()
         btn_load = QPushButton()
         combo_colorspace = QComboBox()
@@ -24,6 +29,10 @@ class MaterialTable(QTableWidget):
         self.setCellWidget(index, 3, btn_load)
         self.setCellWidget(index, 4, combo_colorspace)
         self.setCellWidget(index, 5, check_dismap)
+        self.setItem(index, 0, item_name)
+        self.setItem(index, 2, item_path)
+        check_udim.setChecked(udim)
+        btn_load.clicked.connect(partial(self.get_file_path, index))
 
     def _create_combo_colorspace(self, combo):
         colorspace = ["ARRI LogC", "camera Rec 709", "Sony SLog2", "Log film scam (ADX)", "Log-to-Lin (cineon)",
@@ -32,14 +41,32 @@ class MaterialTable(QTableWidget):
                       "gamma 2.4 Rec 709 (video)", "sRGB"]
         combo.addItems(colorspace)
 
+    def get_file_path(self, row):
+        file_path = QFileDialog.getOpenFileName(self, "Get File Path")
+        if file_path[0] != '':
+            item_path = QTableWidgetItem(file_path[0])
+            self.setItem(row, 2, item_path)
+
     def set_rows(self, caches):
-        for cache in caches:
-            self.set_row()
+        len_ = len(caches)
+        self.setColumnCount(6)
+        for i in range(len_):
+            self.insertRow(i)
+            self.set_row(i, caches[i]["Name"], caches[i]["UDIM"], caches[i]["Path"])
+            self.retranslate_cell_widgets(i)
+
+    def retranslate_cell_widgets(self, index):
+        _objTranslate = QObject().tr
+        _translate = QCoreApplication.translate
+        init_obj_name = _objTranslate("SettingDialog")
+        self.cellWidget(index, 1).setText(_translate(init_obj_name, _objTranslate("UDIM")))
+        self.cellWidget(index, 3).setText(_translate(init_obj_name, _objTranslate("Load")))
+        self.cellWidget(index, 5).setText(_translate(init_obj_name, _objTranslate("DISMAP")))
 
 
 class SettingDialogWidget(QDialog):
     def __init__(self):
-        super(SettingDialogWidget, self).__init__(parent=None)
+        super(SettingDialogWidget, self).__init__()
         self.label_setting = QLabel()
         self.check_aces = QCheckBox()
         self.edit_directory = QLineEdit()

@@ -39,7 +39,7 @@ class MayaShadingNode:
 
 
 class TextureFileManager:
-    FILE_TYPE = {".jpg", ".jpeg", ".png", ".PNG", ".exr", ".tx", ".tex", ".tiff"}
+    FILE_TYPE = {"jpg", "jpeg", "png", "PNG", "exr", "tx", "tex", "tiff"}
 
     def __init__(self, path):
         self._path = path
@@ -64,24 +64,30 @@ class TextureFileManager:
     def file_type(self):
         return self._file_type
 
+    @property
+    def udim(self):
+        return self._udim
+
     def get_file_name(self, value):
-        name_set = {value}
+        name_elements = value.split('.')
+        name_set = set(name_elements)
         if name_set.intersection(self.FILE_TYPE):
-            self._name = os.path.splitext(value)[0]
+            self._name = name_elements[0]
         else:
             print("Error: This can't be defined as a <file name>! Check your values! - {0}".format(value))
 
     def get_file_type(self, value):
-        name_set = {value}
+        name_elements = value.split('.')
+        name_set = set(name_elements)
         if name_set.intersection(self.FILE_TYPE):
-            self._file_type = os.path.splitext(value)[-1]
+            self._file_type = name_elements[-1]
         else:
             print("Error: This can't be defined as a <file type>! Check your values! - {0}".format(value))
 
-    def is_udim(self):
-        if '.' in self._name:
-            division = self._name.split('.')
-            number_filter = re.search("\d\d\d\d", division[-1])
+    def is_udim(self, value):
+        if '.' in value:
+            division = value.split('.')
+            number_filter = re.search("\d\d\d\d", division[1])
             if number_filter:
                 self._udim = True
 
@@ -90,4 +96,4 @@ class TextureFileManager:
         file_name = os.path.basename(self._path)
         self.get_file_name(file_name)
         self.get_file_type(file_name)
-        self.is_udim()
+        self.is_udim(file_name)
