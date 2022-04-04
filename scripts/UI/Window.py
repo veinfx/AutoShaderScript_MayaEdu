@@ -22,7 +22,6 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         super(MaterialHandlerWindow, self).__init__()
         self._models = []
         self._materials = []
-        self._colorspaces = []
         self._setting = SettingDialog.SettingDialogWidget()
         self._dir_path = None
 
@@ -74,9 +73,15 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
 
     def setup_base(self):
         self.LOG.message("Set Up Preparation For Base Setting")
-        self._models = cmds.ls(typ="mesh")
+        len_ = len(self._materials)
+        for i in range(len_):
+            self._materials[i]["Colorspace"] = self._setting.table_material.cellWidget(i, 4).currentText()
+            self._materials[i]["DISMAP"] = self._setting.table_material.cellWidget(i, 5).isChecked()
+        self._models = [mesh for mesh in cmds.ls(typ="mesh") if "polySurfaceShape" not in mesh]
         material_names = [item.get("Name") for item in self._materials]
         self.table_mesh.set_rows(self._models, material_names)
+        self.table_mesh.set_header()
+        self._setting.close()
 
     def select_mesh(self, row, column):
         mesh = self.table_mesh.item(row, column).text()
@@ -88,8 +93,8 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         message = "There Are No Targets"
         len_ = len(self._models)
         for i in range(len_):
-            # 20220403 Start point from fixing Assigner
-            assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[i], self._colorspaces[i])
+            index = self.table_mesh.cellWidget(i, 1).currentIndex()
+            assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[index])
             next(assigner.assign_materials())
             if result:
                 assigner.set_ui()

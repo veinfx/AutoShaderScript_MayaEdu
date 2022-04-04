@@ -10,12 +10,14 @@ from .Log import MaterialStatusLog
 class MayaMaterialManager(MayaShadingNode):
     LOG = MaterialStatusLog("MayaMaterialHandler:Module")
 
-    def __init__(self, name, colorspace, model, renderer):
+    def __init__(self, material, model, renderer):
         super(MayaMaterialManager, self).__init__()
-        self._name = name
-        self._colorspace = colorspace
+        self._name = material["Name"]
+        self._colorspace = material["Colorspace"]
         self._model = model
         self._renderer = renderer
+        self._renderer_shader = None
+        self._sg_node = None
 
     def create_texture_group(self, path, udim=False):
         self.LOG.message("Create Texture Group:UDIM:{0}".format(udim))
@@ -72,9 +74,9 @@ class MayaMaterialManager(MayaShadingNode):
     def create_renderer_group(self):
         self.LOG.message("Create Renderer Group:Mesh:{0}".format(self._model))
         dag_node = cmds.ls(self._model, dag=True, s=True)
-        sg_node = cmds.listConnections(dag_node, t="shadingEngine")[0]
-        shader = cmds.listConnections(sg_node)
-        self.node = cmds.ls(shader, materials=True)[0]
+        self._sg_node = cmds.listConnections(dag_node, t="shadingEngine")[0]
+        shader = cmds.listConnections(self._sg_node)
+        self._renderer_shader = cmds.ls(shader, materials=True)[0]
         self.set_attribute("bumpMapType", 1)
         self.set_attribute("reflectionColor", [1.0, 1.0, 1.0], type_="double3")
 
@@ -112,6 +114,7 @@ class MayaMaterialManager(MayaShadingNode):
 
     def create_material(self, path, udim):
         self.create_renderer_group()
+        # 20220404 start point
         self.create_texture_group(path, udim)
         self.set_additional_attributes()
 
@@ -124,17 +127,15 @@ class MayaMaterialManager(MayaShadingNode):
 
 
 class MaterialAssigner:
-    def __init__(self, model, materials, colorspace):
+    def __init__(self, model, material):
         self._model = model
-        self._materials = materials
-        self._colorspace = colorspace
+        self._material = material
 
     def assign_materials(self):
         renderer = cmds.getAttr("defaultRenderGlobals.currentRenderer")
-        for key in self._materials.keys():
-            mat_manager = MayaMaterialManager(key, self._colorspace[key], self._model, renderer)
-            tex_manager = TextureFileManager(self._materials[key])
-            yield mat_manager.create_material(tex_manager.path, tex_manager.udim)
+        mat_manager = MayaMaterialManager(self._material, self._model, renderer)
+        tex_manager = TextureFileManager(self._material["Path"])
+        yield mat_manager.create_material(tex_manager.path, tex_manager.udim)
 
     def set_ui(self):
         opened_ui = cmds.lsUI(wnd=True)

@@ -6,8 +6,8 @@ import maya.cmds as cmds
 
 
 class MayaShadingNode:
-    def __init__(self, node):
-        self._node = node
+    def __init__(self):
+        self._node = None
 
     @property
     def node(self):
