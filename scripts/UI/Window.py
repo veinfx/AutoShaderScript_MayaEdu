@@ -93,13 +93,14 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         message = "There Are No Targets"
         len_ = len(self._models)
         for i in range(len_):
-            index = self.table_mesh.cellWidget(i, 1).currentIndex()
-            assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[index])
-            next(assigner.assign_materials())
-            if result:
+            try:
+                index = self.table_mesh.cellWidget(i, 1).currentIndex()
+                assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[index])
+                next(assigner.assign_materials())
                 assigner.set_ui()
+                result = True
                 message = "Completed Creation Of Materials"
-            else:
+            except:
                 message = "Failed Creation Of Materials"
                 break
         if result:

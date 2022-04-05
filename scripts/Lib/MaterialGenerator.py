@@ -24,9 +24,9 @@ class MayaMaterialManager(MayaShadingNode):
         fileNode = cmds.shadingNode("file", at=True, icm=True)
         fileNode = cmds.ls(fileNode, l=True)[0]
         self.node = fileNode
-        self.set_attribute("ignoreColorSpaceFileRules", True)
-        self.set_attribute("colorspace", self._colorspace)
-        self.set_attribute("fileTextureName", path)
+        self.set_attribute("ignoreColorSpaceFileRules", True, type_="bool")
+        self.set_attribute("colorSpace", self._colorspace, type_="string")
+        self.set_attribute("fileTextureName", path, type_="string")
         if udim == True:
             self.set_attribute("uvTilingMode", 3)
 
@@ -76,45 +76,45 @@ class MayaMaterialManager(MayaShadingNode):
         dag_node = cmds.ls(self._model, dag=True, s=True)
         self._sg_node = cmds.listConnections(dag_node, t="shadingEngine")[0]
         shader = cmds.listConnections(self._sg_node)
-        self._renderer_shader = cmds.ls(shader, materials=True)[0]
+        self.node = self._renderer_shader = cmds.ls(shader, materials=True)[0]
         self.set_attribute("bumpMapType", 1)
         self.set_attribute("reflectionColor", [1.0, 1.0, 1.0], type_="double3")
 
-    def set_additional_attributes(self, src):
+    def set_additional_attributes(self):
         self.LOG.message("Set Additional Attributes")
         src_attr, dst_attr = None, None
-        if "aniso" in self._name and "rotation" in self._name:
+        if "Aniso" in self._name and "Rotation" in self._name:
             src_attr = "outAlpha"
             dst_attr = "anisotropyRotation"
-        elif "aniso" in self._name and "level" in self._name:
+        elif "Aniso" in self._name and "Level" in self._name:
             src_attr = "outAlpha"
             dst_attr = "anisotropy"
-        elif "emissive" in self._name:
+        elif "Emissive" in self._name:
             src_attr = "outColor"
             dst_attr = "illumColor"
-        elif "base" in self._name:
+        elif "Base" in self._name:
             src_attr = "outColor"
             dst_attr = "color"
-        elif "height" in self._name:
+        elif "Height" in self._name:
             src_attr = "outAlpha"
             dst_attr = "displacement"
-        elif "metal" in self._name:
+        elif "Metal" in self._name:
             src_attr = "outAlpha"
             dst_attr = "metalness"
-        elif "normal" in self._name:
+        elif "Normal" in self._name:
             src_attr = "outColor"
             dst_attr = "bumpMap"
-        elif "rough" in self._name:
+        elif "Rough" in self._name:
             src_attr = "outAlpha"
             dst_attr = "reflectionGlossiness"
         if src_attr is not None and dst_attr is not None:
-            self.connect_attribute(src, src_attr, attr_=dst_attr)
+            self.node, texNode = self._renderer_shader, self.node
+            self.connect_attribute(texNode, src_attr, attr_=dst_attr)
         else:
             self.LOG.error("Failed Setting Addtional Attributes:SRC:{}:DST:{}".format(src_attr, dst_attr))
 
     def create_material(self, path, udim):
         self.create_renderer_group()
-        # 20220404 start point
         self.create_texture_group(path, udim)
         self.set_additional_attributes()
 
