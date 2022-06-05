@@ -1,42 +1,65 @@
-# :coding: utf-8
+# coding= utf-8
 
 import os
 import maya.cmds as cmds
 
-from imp import reload
-
 from ..UI import Widgets
 from ..UI import SettingDialog
 
-from ..Lib import (MayaMaterial, MaterialGenerator)
+from ..Lib import MayaMaterial
 from ..Lib.Log import MaterialStatusLog
 
-reload(MayaMaterial)
-reload(MaterialGenerator)
+from imp import reload
+reload(SettingDialog)
+reload(Widgets)
+RENDERER = cmds.getAttr("defaultRenderGlobals.currentRenderer")
+if RENDERER == "vray":
+    from ..Lib.MaterialGenerators import VRayMaterialGenerator as MaterialGenerator
+elif RENDERER == "arnold":
+    from ..Lib.MaterialGenerators import ArnoldMaterialGenerator as MaterialGenerator
+elif RENDERER == "prman":
+    from ..Lib.MaterialGenerators import PRManMaterialGenerator as MaterialGenerator
 
 
-class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
+class MaterialHandlerWindow(Widgets.QMainWindow):
     LOG = MaterialStatusLog("MayaMaterialHandler:Interface")
 
-    def __init__(self):
-        super(MaterialHandlerWindow, self).__init__()
+    def __init__(self, parent=None):
+        super(MaterialHandlerWindow, self).__init__(parent)
+        self.setObjectName("MaterialHandlerWindow")
         self._models = []
         self._materials = []
-        self._setting = SettingDialog.SettingDialogWidget()
+        self._widget = Widgets.MaterialManagerWidgets()
+        self._setting = SettingDialog.SettingDialogWidget(parent)
         self._dir_path = None
 
-        self.setup_widget(self)
+        self._widget.setup_widget(self)
         self._setting.setup_widget(self)
+        self.setCentralWidget(self._widget)
 
-        self.table_mesh.cellClicked.connect(self.select_mesh)
-        self.btn_assign.clicked.connect(self.run)
-        self.btn_setting.clicked.connect(self.get_setting_dialog)
+        self._widget.table_mesh.cellClicked.connect(self.select_mesh)
+        self._widget.btn_assign.clicked.connect(self.run)
+        self._widget.btn_setting.clicked.connect(self.get_setting_dialog)
         self._setting.btn_find.clicked.connect(self.get_directory)
+        self._setting.check_non_root.stateChanged.connect(self.disable_adding_material)
+        self._setting.btn_add_row.clicked.connect(self.add_material)
         self._setting.btn_load.clicked.connect(self.create_material_table)
         self._setting.btn_define.clicked.connect(self.setup_base)
 
     def get_setting_dialog(self):
+        self._setting.btn_add_row.setEnabled(False)
         self._setting.show()
+
+    def disable_adding_material(self):
+        if self._setting.check_non_root.checkState():
+            self._setting.btn_add_row.setEnabled(True)
+        else:
+            self._setting.btn_add_row.setEnabled(False)
+
+    def add_material(self):
+        if self._setting.check_non_root.checkState():
+            self._setting.table_material.add_empty_row()
+            self._setting.table_material.set_header()
 
     def _get_materials(self):
         i = -1
@@ -79,12 +102,12 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
             self._materials[i]["DISMAP"] = self._setting.table_material.cellWidget(i, 5).isChecked()
         self._models = [mesh for mesh in cmds.ls(typ="mesh") if "polySurfaceShape" not in mesh]
         material_names = [item.get("Name") for item in self._materials]
-        self.table_mesh.set_rows(self._models, material_names)
-        self.table_mesh.set_header()
+        self._widget.table_mesh.set_rows(self._models, material_names)
+        self._widget.table_mesh.set_header()
         self._setting.close()
 
     def select_mesh(self, row, column):
-        mesh = self.table_mesh.item(row, column).text()
+        mesh = self._widget.table_mesh.item(row, column).text()
         cmds.select(mesh)
 
     def run(self):
@@ -94,7 +117,7 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
         len_ = len(self._models)
         for i in range(len_):
             try:
-                index = self.table_mesh.cellWidget(i, 1).currentIndex()
+                index = self._widget.table_mesh.cellWidget(i, 1).currentIndex()
                 assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[index])
                 next(assigner.assign_materials())
                 assigner.set_ui()
@@ -107,3 +130,20 @@ class MaterialHandlerWindow(Widgets.MaterialManagerWidgets):
             Widgets.QMessageBox.information(self, "Completed", message, Widgets.QMessageBox.Ok)
         else:
             Widgets.QMessageBox.critical(self, "Failed", message, Widgets.QMessageBox.Ok)
+
+
+def get_main_window():
+    import shiboken2
+    import maya.OpenMayaUI as OpenMayaUI
+
+    from PySide2.QtWidgets import QWidget
+
+    main_window_pointer = OpenMayaUI.MQtUtil.mainWindow()
+    wrapper = shiboken2.wrapInstance(int(main_window_pointer), QWidget)
+    return wrapper
+
+
+def launch_window():
+    maya_window = get_main_window()
+    material_manager = MaterialHandlerWindow(maya_window)
+    material_manager.show()

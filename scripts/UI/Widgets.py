@@ -2,9 +2,9 @@
 
 from functools import partial
 from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject)
-from PySide2.QtWidgets import (QWidget, QMenuBar, QToolButton, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
+from PySide2.QtWidgets import (QMenuBar, QToolButton, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
                                QListView, QGroupBox, QComboBox, QAction, QFileDialog, QMessageBox, QTableWidget,
-                               QTableWidgetItem)
+                               QTableWidgetItem, QMainWindow, QWidget)
 
 
 class MeshTable(QTableWidget):

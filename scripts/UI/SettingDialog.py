@@ -3,7 +3,7 @@
 from functools import partial
 from PySide2.QtCore import (QMetaObject, QCoreApplication, QObject)
 from PySide2.QtWidgets import (QTableWidget, QCheckBox, QDialog, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout,
-                               QComboBox, QLabel, QFileDialog, QTableWidgetItem)
+                               QComboBox, QLabel, QFileDialog, QTableWidgetItem, QSizePolicy, QAbstractScrollArea)
 
 
 class MaterialTable(QTableWidget):
@@ -42,18 +42,43 @@ class MaterialTable(QTableWidget):
         combo.addItems(colorspace)
 
     def get_file_path(self, row):
+        from ..Lib.MayaMaterial import TextureFileManager
+
         file_path = QFileDialog.getOpenFileName(self, "Get File Path")
         if file_path[0] != '':
+            check_udim = self.cellWidget(row, 1)
+            tex_manager = TextureFileManager(file_path[0])
+            tex_manager.get_texture_info()
             item_path = QTableWidgetItem(file_path[0])
+            item_name = QTableWidgetItem(tex_manager.name)
+            self.setItem(row, 0, item_name)
             self.setItem(row, 2, item_path)
+            check_udim.setChecked(tex_manager.udim)
+            self.resizeColumnToContents(2)
+            self.sizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+
+    def get_current_index(self):
+        row_count = self.rowCount() + 1
+        index = 0
+        if row_count != 0:
+            index = row_count - 1
+        return index
+
+    def add_empty_row(self):
+        index = self.get_current_index()
+        self.setColumnCount(6)
+        self.insertRow(index)
+        self.set_row(index, '', False, '')
+        self.retranslate_cell_widgets(index)
 
     def set_rows(self, caches):
         len_ = len(caches)
         self.setColumnCount(6)
         for i in range(len_):
-            self.insertRow(i)
-            self.set_row(i, caches[i]["Name"], caches[i]["UDIM"], caches[i]["Path"])
-            self.retranslate_cell_widgets(i)
+            index = self.get_current_index()
+            self.insertRow(index)
+            self.set_row(index, caches[i]["Name"], caches[i]["UDIM"], caches[i]["Path"])
+            self.retranslate_cell_widgets(index)
 
     def retranslate_cell_widgets(self, index):
         _objTranslate = QObject().tr
@@ -65,26 +90,33 @@ class MaterialTable(QTableWidget):
 
 
 class SettingDialogWidget(QDialog):
-    def __init__(self):
-        super(SettingDialogWidget, self).__init__()
+    def __init__(self, parent=None):
+        super(SettingDialogWidget, self).__init__(parent)
         self.label_setting = QLabel()
         self.check_aces = QCheckBox()
         self.edit_directory = QLineEdit()
         self.btn_find = QPushButton()
         self.edit_name_prefix = QLineEdit()
+        self.check_non_root = QCheckBox()
+        self.btn_add_row = QPushButton()
         self.btn_load = QPushButton()
         self.table_material = MaterialTable()
         self.btn_define = QPushButton()
 
     def setup_widget(self, dialog):
         dialog.setObjectName("SettingDialog")
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         layout = QVBoxLayout()
         top_layout = QVBoxLayout()
         path_layout = QHBoxLayout()
+        option_layout = QHBoxLayout()
 
         path_layout.addWidget(self.edit_directory)
         path_layout.addWidget(self.btn_find)
+        option_layout.addWidget(self.check_non_root)
+        option_layout.addWidget(self.btn_add_row)
         top_layout.addWidget(self.check_aces)
+        top_layout.addLayout(option_layout)
         top_layout.addLayout(path_layout)
         top_layout.addWidget(self.btn_load)
         layout.addWidget(self.label_setting)
@@ -105,6 +137,8 @@ class SettingDialogWidget(QDialog):
         self.check_aces.setText(_translate(init_obj_name, _objTranslate("ACES")))
         self.edit_directory.setText(_translate(init_obj_name, _objTranslate("Directory Path")))
         self.btn_find.setText(_translate(init_obj_name, _objTranslate("FIND")))
+        self.check_non_root.setText(_translate(init_obj_name, _objTranslate("Enable To Load Paths From Non Root")))
+        self.btn_add_row.setText(_translate(init_obj_name, _objTranslate("ADD MATERIAL")))
         self.edit_name_prefix.setText(_translate(init_obj_name, _objTranslate("Name Prefix")))
         self.btn_load.setText(_translate(init_obj_name, _objTranslate("Texture Load")))
         self.btn_define.setText(_translate(init_obj_name, _objTranslate("Define Materials")))
