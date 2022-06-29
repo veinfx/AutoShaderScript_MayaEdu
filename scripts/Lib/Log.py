@@ -1,12 +1,21 @@
 # coding=utf-8
 
+import os
+import platform
 import logging
+
+
+def get_username():
+	if platform.system() == "Windows":
+		name = os.getenv("USERNAME")
+	return name
 
 
 class MaterialStatusLog:
 	def __init__(self, name):
 		self._name = name
 		self._logger = logging.getLogger()
+		self._logger.name = get_username()
 		self._stream_handler = logging.StreamHandler()
 
 	def initialzie_log(self):

@@ -1,10 +1,10 @@
 # coding= utf-8
 
 from functools import partial
-from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject)
+from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject, Qt)
 from PySide2.QtWidgets import (QMenuBar, QToolButton, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
                                QListView, QGroupBox, QComboBox, QAction, QFileDialog, QMessageBox, QTableWidget,
-                               QTableWidgetItem, QMainWindow, QWidget)
+                               QTableWidgetItem, QMainWindow, QWidget, QAbstractScrollArea)
 
 
 class MeshTable(QTableWidget):
@@ -24,6 +24,8 @@ class MeshTable(QTableWidget):
         combo_material.addItems(materials)
         self.setCellWidget(index, 1, combo_material)
         self.setItem(index, 0, item_name)
+        self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.horizontalHeader().setStretchLastSection(True)
 
     def set_rows(self, caches, materials):
         len_ = len(caches)

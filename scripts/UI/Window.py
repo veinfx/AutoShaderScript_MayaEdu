@@ -3,15 +3,19 @@
 import os
 import maya.cmds as cmds
 
+from functools import partial
+
 from ..UI import Widgets
 from ..UI import SettingDialog
 
 from ..Lib import MayaMaterial
-from ..Lib.Log import MaterialStatusLog
+from ..Lib import Log
 
 from imp import reload
 reload(SettingDialog)
 reload(Widgets)
+reload(Log)
+
 RENDERER = cmds.getAttr("defaultRenderGlobals.currentRenderer")
 if RENDERER == "vray":
     from ..Lib.MaterialGenerators import VRayMaterialGenerator as MaterialGenerator
@@ -22,11 +26,11 @@ elif RENDERER == "prman":
 
 
 class MaterialHandlerWindow(Widgets.QMainWindow):
-    LOG = MaterialStatusLog("MayaMaterialHandler:Interface")
+    LOG = Log.MaterialStatusLog("MayaMaterialHandler:Interface")
 
     def __init__(self, parent=None):
         super(MaterialHandlerWindow, self).__init__(parent)
-        self.setObjectName("MaterialHandlerWindow")
+        self.setObjectName("MaterialHandler")
         self._models = []
         self._materials = []
         self._widget = Widgets.MaterialManagerWidgets()
@@ -43,18 +47,26 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
         self._setting.btn_find.clicked.connect(self.get_directory)
         self._setting.check_non_root.stateChanged.connect(self.disable_adding_material)
         self._setting.btn_add_row.clicked.connect(self.add_material)
+        self._setting.btn_delete_row.clicked.connect(self._setting.table_material.delete_rows)
+        self._setting.btn_delete_rows.clicked.connect(partial(self._setting.table_material.delete_rows, True))
         self._setting.btn_load.clicked.connect(self.create_material_table)
         self._setting.btn_define.clicked.connect(self.setup_base)
 
     def get_setting_dialog(self):
         self._setting.btn_add_row.setEnabled(False)
+        self._setting.btn_delete_row.setEnabled(False)
+        self._setting.btn_delete_rows.setEnabled(False)
         self._setting.show()
 
     def disable_adding_material(self):
         if self._setting.check_non_root.checkState():
             self._setting.btn_add_row.setEnabled(True)
+            self._setting.btn_delete_row.setEnabled(True)
+            self._setting.btn_delete_rows.setEnabled(True)
         else:
             self._setting.btn_add_row.setEnabled(False)
+            self._setting.btn_delete_row.setEnabled(False)
+            self._setting.btn_delete_rows.setEnabled(False)
 
     def add_material(self):
         if self._setting.check_non_root.checkState():
@@ -65,7 +77,7 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
         i = -1
         self._materials = []
         for file_name in os.listdir(self._dir_path):
-            file_path = os.path.join(self._dir_path, file_name)
+            file_path = "{0}/{1}".format(self._dir_path, file_name)
             tex_manager = MayaMaterial.TextureFileManager(file_path)
             tex_manager.get_texture_info()
             if self._materials != []:
@@ -81,6 +93,9 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
             self._get_materials()
             self._setting.table_material.set_rows(self._materials)
             self._setting.table_material.set_header()
+            self._setting.close()
+            self._setting.show()
+            self._widget.table_mesh.adjustSize()
             self.LOG.message("Completed Creation of Material Table")
         else:
             self.LOG.error("Failed Getting Texture Path")
@@ -98,8 +113,8 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
         self.LOG.message("Set Up Preparation For Base Setting")
         len_ = len(self._materials)
         for i in range(len_):
-            self._materials[i]["Colorspace"] = self._setting.table_material.cellWidget(i, 4).currentText()
-            self._materials[i]["DISMAP"] = self._setting.table_material.cellWidget(i, 5).isChecked()
+            self._materials[i]["Colorspace"] = self._setting.table_material.cellWidget(i, 5).currentText()
+            self._materials[i]["DISMAP"] = self._setting.table_material.cellWidget(i, 6).isChecked()
         self._models = [mesh for mesh in cmds.ls(typ="mesh") if "polySurfaceShape" not in mesh]
         material_names = [item.get("Name") for item in self._materials]
         self._widget.table_mesh.set_rows(self._models, material_names)

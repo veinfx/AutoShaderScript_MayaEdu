@@ -1,9 +1,10 @@
 # coding= utf-8
 
 from functools import partial
-from PySide2.QtCore import (QMetaObject, QCoreApplication, QObject)
+from PySide2.QtCore import (QMetaObject, QCoreApplication, QObject, Qt)
 from PySide2.QtWidgets import (QTableWidget, QCheckBox, QDialog, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout,
-                               QComboBox, QLabel, QFileDialog, QTableWidgetItem, QSizePolicy, QAbstractScrollArea)
+                               QComboBox, QLabel, QFileDialog, QTableWidgetItem, QSizePolicy, QAbstractScrollArea,
+                               QHeaderView)
 
 
 class MaterialTable(QTableWidget):
@@ -11,13 +12,14 @@ class MaterialTable(QTableWidget):
         super(MaterialTable, self).__init__()
 
     def set_header(self):
-        header = ["Name", "UDIM", "Path", "File Path", "Colorspace", "DISMAP"]
+        header = ['', "Name", "UDIM", "Path", "File Path", "Colorspace", "DISMAP"]
         len_ = len(header)
         for i in range(len_):
             header_item = QTableWidgetItem(header[i])
             self.setHorizontalHeaderItem(i, header_item)
 
     def set_row(self, index, name, udim, file_path):
+        check_row = QCheckBox()
         item_name = QTableWidgetItem(name)
         item_path = QTableWidgetItem(file_path)
         check_udim = QCheckBox()
@@ -25,13 +27,17 @@ class MaterialTable(QTableWidget):
         combo_colorspace = QComboBox()
         check_dismap = QCheckBox()
         self._create_combo_colorspace(combo_colorspace)
-        self.setCellWidget(index, 1, check_udim)
-        self.setCellWidget(index, 3, btn_load)
-        self.setCellWidget(index, 4, combo_colorspace)
-        self.setCellWidget(index, 5, check_dismap)
-        self.setItem(index, 0, item_name)
-        self.setItem(index, 2, item_path)
+        self.setCellWidget(index, 0, check_row)
+        self.setCellWidget(index, 2, check_udim)
+        self.setCellWidget(index, 4, btn_load)
+        self.setCellWidget(index, 5, combo_colorspace)
+        self.setCellWidget(index, 6, check_dismap)
+        self.setItem(index, 1, item_name)
+        self.setItem(index, 3, item_path)
         check_udim.setChecked(udim)
+        self.resizeColumnToContents(3)
+        self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.horizontalHeader().setStretchLastSection(True)
         btn_load.clicked.connect(partial(self.get_file_path, index))
 
     def _create_combo_colorspace(self, combo):
@@ -54,28 +60,32 @@ class MaterialTable(QTableWidget):
             self.setItem(row, 0, item_name)
             self.setItem(row, 2, item_path)
             check_udim.setChecked(tex_manager.udim)
-            self.resizeColumnToContents(2)
-            self.sizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
-
-    def get_current_index(self):
-        row_count = self.rowCount() + 1
-        index = 0
-        if row_count != 0:
-            index = row_count - 1
-        return index
+            self.resizeColumnToContents(3)
+            self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
     def add_empty_row(self):
-        index = self.get_current_index()
-        self.setColumnCount(6)
+        index = self.rowCount()
+        self.setColumnCount(7)
         self.insertRow(index)
         self.set_row(index, '', False, '')
         self.retranslate_cell_widgets(index)
 
+    def delete_rows(self, selection=False):
+        counts = self.rowCount()
+        range_ = range(counts)
+        if not selection:
+            for i in reversed(range_):
+                if self.cellWidget(i, 0).isChecked():
+                    self.removeRow(i)
+        else:
+            for i in reversed(range_):
+                self.removeRow(i)
+
     def set_rows(self, caches):
         len_ = len(caches)
-        self.setColumnCount(6)
+        self.setColumnCount(7)
         for i in range(len_):
-            index = self.get_current_index()
+            index = self.rowCount()
             self.insertRow(index)
             self.set_row(index, caches[i]["Name"], caches[i]["UDIM"], caches[i]["Path"])
             self.retranslate_cell_widgets(index)
@@ -84,21 +94,23 @@ class MaterialTable(QTableWidget):
         _objTranslate = QObject().tr
         _translate = QCoreApplication.translate
         init_obj_name = _objTranslate("SettingDialog")
-        self.cellWidget(index, 1).setText(_translate(init_obj_name, _objTranslate("UDIM")))
-        self.cellWidget(index, 3).setText(_translate(init_obj_name, _objTranslate("Load")))
-        self.cellWidget(index, 5).setText(_translate(init_obj_name, _objTranslate("DISMAP")))
+        self.cellWidget(index, 2).setText(_translate(init_obj_name, _objTranslate("UDIM")))
+        self.cellWidget(index, 4).setText(_translate(init_obj_name, _objTranslate("Load")))
+        self.cellWidget(index, 6).setText(_translate(init_obj_name, _objTranslate("DISMAP")))
 
 
 class SettingDialogWidget(QDialog):
     def __init__(self, parent=None):
         super(SettingDialogWidget, self).__init__(parent)
         self.label_setting = QLabel()
-        self.check_aces = QCheckBox()
+        # self.check_aces = QCheckBox()
         self.edit_directory = QLineEdit()
         self.btn_find = QPushButton()
         self.edit_name_prefix = QLineEdit()
         self.check_non_root = QCheckBox()
         self.btn_add_row = QPushButton()
+        self.btn_delete_row = QPushButton()
+        self.btn_delete_rows = QPushButton()
         self.btn_load = QPushButton()
         self.table_material = MaterialTable()
         self.btn_define = QPushButton()
@@ -106,6 +118,9 @@ class SettingDialogWidget(QDialog):
     def setup_widget(self, dialog):
         dialog.setObjectName("SettingDialog")
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.setWindowFlag(Qt.WindowStaysOnTopHint)
+        self.setWindowModality(Qt.ApplicationModal)
+        # self.check_aces.setEnabled(False)
         layout = QVBoxLayout()
         top_layout = QVBoxLayout()
         path_layout = QHBoxLayout()
@@ -115,7 +130,9 @@ class SettingDialogWidget(QDialog):
         path_layout.addWidget(self.btn_find)
         option_layout.addWidget(self.check_non_root)
         option_layout.addWidget(self.btn_add_row)
-        top_layout.addWidget(self.check_aces)
+        option_layout.addWidget(self.btn_delete_row)
+        option_layout.addWidget(self.btn_delete_rows)
+        # top_layout.addWidget(self.check_aces)
         top_layout.addLayout(option_layout)
         top_layout.addLayout(path_layout)
         top_layout.addWidget(self.btn_load)
@@ -134,11 +151,13 @@ class SettingDialogWidget(QDialog):
         init_obj_name = _objTranslate("SettingDialog")
         dialog.setWindowTitle(_translate(init_obj_name, _objTranslate("Material Settings")))
         self.label_setting.setText(_translate(init_obj_name, _objTranslate("Material Settings")))
-        self.check_aces.setText(_translate(init_obj_name, _objTranslate("ACES")))
+        # self.check_aces.setText(_translate(init_obj_name, _objTranslate("ACES")))
         self.edit_directory.setText(_translate(init_obj_name, _objTranslate("Directory Path")))
         self.btn_find.setText(_translate(init_obj_name, _objTranslate("FIND")))
         self.check_non_root.setText(_translate(init_obj_name, _objTranslate("Enable To Load Paths From Non Root")))
         self.btn_add_row.setText(_translate(init_obj_name, _objTranslate("ADD MATERIAL")))
+        self.btn_delete_row.setText(_translate(init_obj_name, _objTranslate("DELETE MATERIAL")))
+        self.btn_delete_rows.setText(_translate(init_obj_name, _objTranslate("DELETE ALL MATERIALS")))
         self.edit_name_prefix.setText(_translate(init_obj_name, _objTranslate("Name Prefix")))
         self.btn_load.setText(_translate(init_obj_name, _objTranslate("Texture Load")))
         self.btn_define.setText(_translate(init_obj_name, _objTranslate("Define Materials")))
