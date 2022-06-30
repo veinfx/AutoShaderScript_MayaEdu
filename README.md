@@ -4,9 +4,5 @@ This script is for artists who personally use Maya like Education or Indie versi
 ## Installation
 1. Put a root directory(AutoShaderScript_MayaEdu) into a Maya scripts directory.
 * Windows: C:\Users\{user_directory}\Documents\maya\scripts
-2. Write these commands on Script Editor or Shelf Editor of Maya.
-```python
-from AutoShaderScript_MayaEdu.scripts.UI import Window
-mat = Window.MaterialHandlerWindow()
-mat.show()
-```
+2. Open installer.py on Script Editor and run it.
+* Path: ../AutoShaderScript_MayaEdu/scripts/installer.py

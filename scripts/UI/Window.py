@@ -37,6 +37,7 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
         self._setting = SettingDialog.SettingDialogWidget(parent)
         self._dir_path = None
 
+        self._set_window_size()
         self._widget.setup_widget(self)
         self._setting.setup_widget(self)
         self.setCentralWidget(self._widget)
@@ -51,6 +52,13 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
         self._setting.btn_delete_rows.clicked.connect(partial(self._setting.table_material.delete_rows, True))
         self._setting.btn_load.clicked.connect(self.create_material_table)
         self._setting.btn_define.clicked.connect(self.setup_base)
+
+    def _set_window_size(self):
+        desktop = Widgets.QDesktopWidget()
+        main_monitor = desktop.screenGeometry(0)
+        width = main_monitor.width() * 0.3
+        height = main_monitor.height() * 0.3
+        self.resize(width, height)
 
     def get_setting_dialog(self):
         self._setting.btn_add_row.setEnabled(False)

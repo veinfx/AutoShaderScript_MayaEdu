@@ -4,7 +4,7 @@ from functools import partial
 from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject, Qt)
 from PySide2.QtWidgets import (QMenuBar, QToolButton, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
                                QListView, QGroupBox, QComboBox, QAction, QFileDialog, QMessageBox, QTableWidget,
-                               QTableWidgetItem, QMainWindow, QWidget, QAbstractScrollArea)
+                               QTableWidgetItem, QMainWindow, QWidget, QAbstractScrollArea, QSizePolicy, QDesktopWidget)
 
 
 class MeshTable(QTableWidget):
