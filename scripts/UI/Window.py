@@ -4,17 +4,13 @@ import os
 import maya.cmds as cmds
 
 from functools import partial
+from PySide2.QtWidgets import (QMainWindow, QMessageBox, QDesktopWidget, QFileDialog)
 
 from ..UI import Widgets
 from ..UI import SettingDialog
 
 from ..Lib import MayaMaterial
 from ..Lib import Log
-
-from imp import reload
-reload(SettingDialog)
-reload(Widgets)
-reload(Log)
 
 RENDERER = cmds.getAttr("defaultRenderGlobals.currentRenderer")
 if RENDERER == "vray":
@@ -25,7 +21,7 @@ elif RENDERER == "prman":
     from ..Lib.MaterialGenerators import PRManMaterialGenerator as MaterialGenerator
 
 
-class MaterialHandlerWindow(Widgets.QMainWindow):
+class MaterialHandlerWindow(QMainWindow):
     LOG = Log.MaterialStatusLog("MayaMaterialHandler:Interface")
 
     def __init__(self, parent=None):
@@ -54,7 +50,7 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
         self._setting.btn_define.clicked.connect(self.setup_base)
 
     def _set_window_size(self):
-        desktop = Widgets.QDesktopWidget()
+        desktop = QDesktopWidget()
         main_monitor = desktop.screenGeometry(0)
         width = main_monitor.width() * 0.3
         height = main_monitor.height() * 0.3
@@ -110,7 +106,7 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
 
     def get_directory(self):
         self.LOG.message("Get Directory Path")
-        self._dir_path = SettingDialog.QFileDialog.getExistingDirectory()
+        self._dir_path = QFileDialog.getExistingDirectory()
         if self._dir_path:
             self._setting.edit_directory.setText(self._dir_path)
             self.LOG.message("Completed Getting Directory Path: {}".format(self._dir_path))
@@ -150,9 +146,9 @@ class MaterialHandlerWindow(Widgets.QMainWindow):
                 message = "Failed Creation Of Materials"
                 break
         if result:
-            Widgets.QMessageBox.information(self, "Completed", message, Widgets.QMessageBox.Ok)
+            QMessageBox.information(self, "Completed", message, QMessageBox.Ok)
         else:
-            Widgets.QMessageBox.critical(self, "Failed", message, Widgets.QMessageBox.Ok)
+            QMessageBox.critical(self, "Failed", message, QMessageBox.Ok)
 
 
 def get_main_window():

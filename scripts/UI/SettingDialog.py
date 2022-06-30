@@ -3,8 +3,7 @@
 from functools import partial
 from PySide2.QtCore import (QMetaObject, QCoreApplication, QObject, Qt)
 from PySide2.QtWidgets import (QTableWidget, QCheckBox, QDialog, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout,
-                               QComboBox, QLabel, QFileDialog, QTableWidgetItem, QSizePolicy, QAbstractScrollArea,
-                               QHeaderView)
+                               QComboBox, QLabel, QTableWidgetItem, QFileDialog, QSizePolicy, QAbstractScrollArea)
 
 
 class MaterialTable(QTableWidget):
