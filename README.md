@@ -2,7 +2,8 @@
 This script is for artists who personally use Maya like Education or Indie version with V-Ray and Substance Painter. It will help you many setup of shaders automatically.
 
 ## Installation
+(This update just supports Windows. Later, other OS will be added in a support list.)
 1. Put a root directory(AutoShaderScript_MayaEdu) into a Maya scripts directory.
-* Windows: C:\Users\{user_directory}\Documents\maya\scripts
+* Windows: C:\\Users\\{user_directory}\\Documents\\maya\\scripts
 2. Open installer.py on Script Editor and run it.
 * Path: ../AutoShaderScript_MayaEdu/scripts/installer.py

@@ -40,10 +40,6 @@ def create_shelf():
     cmds.shelfButton(ann="MatHandler", p="Custom", iol="Mat", i=icon_path, c=command)
 
 
-def relaunch_maya():
-    return None
-
 if __name__ == "__main__":
     set_environment_variables()
     create_shelf()
-    relaunch_maya()

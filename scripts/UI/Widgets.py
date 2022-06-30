@@ -1,10 +1,8 @@
 # coding= utf-8
 
-from functools import partial
-from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject, Qt)
-from PySide2.QtWidgets import (QMenuBar, QToolButton, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
-                               QListView, QGroupBox, QComboBox, QAction, QFileDialog, QMessageBox, QTableWidget,
-                               QTableWidgetItem, QMainWindow, QWidget, QAbstractScrollArea, QSizePolicy, QDesktopWidget)
+from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject)
+from PySide2.QtWidgets import (QPushButton, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QWidget,
+                               QAbstractScrollArea)
 
 
 class MeshTable(QTableWidget):
