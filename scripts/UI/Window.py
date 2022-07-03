@@ -1,6 +1,7 @@
 # coding= utf-8
 
 import os
+import json
 import maya.cmds as cmds
 
 from functools import partial
@@ -10,6 +11,7 @@ from ..UI import Widgets
 from ..UI import SettingDialog
 
 from ..Lib import MayaMaterial
+from ..Lib import MaterialManager
 from ..Lib import Log
 
 RENDERER = cmds.getAttr("defaultRenderGlobals.currentRenderer")
@@ -56,6 +58,40 @@ class MaterialHandlerWindow(QMainWindow):
         height = main_monitor.height() * 0.3
         self.resize(width, height)
 
+    def set_workspace_setting(self):
+        workspace = cmds.workspace(q=True, o=True)
+        if workspace:
+            workspace_path = cmds.workspace(q=True, rd=True)
+            source_image_name = cmds.workspace(fre="sourceImages")
+            source_image_path = "{0}/{1}".format(workspace_path, source_image_name)
+            self._setting.edit_directory.setText(source_image_path)
+
+    def get_default_materials(self):
+        material_metadata_path = MaterialManager.get_material_metadata(o=True)
+        if os.path.exists(material_metadata_path):
+            i, j = 0, 0
+            material_names = []
+            with open(material_metadata_path, 'r') as metadata_file:
+                material_data = json.load(metadata_file)
+                for metadata in material_data["material"]:
+                    material = {
+                                "Name": metadata["Name"],
+                                "UDIM": metadata["UDIM"],
+                                "Path": metadata["Path"]
+                                "Colorspace": metadata["Colorspace"],
+                                "DISMAP": metadata["DISMAP"]
+                                }
+                    self._materials[i] = material
+                    material_names.append(metadata["Name"])
+                    i += 1
+                for key in material_data.keys():
+                    if "model_" in key:
+                        model = key.replace("model_", '')
+                        self._widget.table_mesh.insertRow(j)
+                        self._widget.table_mesh.set_row(j, model, material_names)
+                        self._widget.table_mesh.cellWidget(j, 1).setCurrentText(material_data[key])
+                        j += 1
+
     def get_setting_dialog(self):
         self._setting.btn_add_row.setEnabled(False)
         self._setting.btn_delete_row.setEnabled(False)
@@ -84,17 +120,18 @@ class MaterialHandlerWindow(QMainWindow):
             file_path = "{0}/{1}".format(self._dir_path, file_name)
             tex_manager = MayaMaterial.TextureFileManager(file_path)
             tex_manager.get_texture_info()
-            if self._materials != []:
+            if not self._materials:
                 if self._materials[i]["Name"] == tex_manager.name:
                     continue
             material = {"Name": tex_manager.name, "UDIM": tex_manager.udim, "Path": file_path}
             self._materials.append(material)
             i += 1
 
-    def create_material_table(self):
+    def create_material_table(self, load=False):
         self.LOG.message("Create Material Table")
-        if self._setting.edit_directory.text() != "":
-            self._get_materials()
+        if not self._setting.edit_directory.text():
+            if not load:
+                self._get_materials()
             self._setting.table_material.set_rows(self._materials)
             self._setting.table_material.set_header()
             self._setting.close()
@@ -134,12 +171,14 @@ class MaterialHandlerWindow(QMainWindow):
         result = False
         message = "There Are No Targets"
         len_ = len(self._models)
+        metadata_path = MaterialManager.get_material_metadata(models=self._models)
         for i in range(len_):
             try:
                 index = self._widget.table_mesh.cellWidget(i, 1).currentIndex()
                 assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[index])
                 next(assigner.assign_materials())
                 assigner.set_ui()
+                MaterialManager.save_assigned_material(metadata_path, self._models[i], self._materials[index])
                 result = True
                 message = "Completed Creation Of Materials"
             except:
@@ -165,4 +204,7 @@ def get_main_window():
 def launch_window():
     maya_window = get_main_window()
     material_manager = MaterialHandlerWindow(maya_window)
+    material_manager.set_workspace_setting()
+    material_manager.get_default_materials()
+    material_manager.create_material_table(load=True)
     material_manager.show()
