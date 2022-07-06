@@ -8,6 +8,7 @@ import maya.cmds as cmds
 class MaterialMetadata:
     def __init__(self):
         self._metadata_path = None
+        self._cache = {}
 
     @property
     def metadata_path(self):
@@ -20,12 +21,10 @@ class MaterialMetadata:
         if workspace in project_path:
             project_name = cmds.file(q=True, sn=True)
             project_name = project_name.split('.')[0]
-            metadata_path = "{0}/{1}_metarials.json".format(workspace, project_name)
+            self._metadata_path = "{0}/{1}_metarials.json".format(workspace, project_name)
         else:
             project_path = project_path.split('.')[0]
-            metadata_path = "{0}_materials.json".format(project_path)
-
-        return metadata_path
+            self._metadata_path = "{0}_materials.json".format(project_path)
 
     def check_existence(self):
         if os.path.exists(self._metadata_path):
@@ -33,32 +32,23 @@ class MaterialMetadata:
         else:
             return False
 
-    def set_model_metadata(self, models):
+    def collect_materials(self, materials):
+        self._cache["material"] = []
+        for material in materials:
+            container = {}
+            container["Name"] = material["Name"]
+            container["UDIM"] = str(material["UDIM"])
+            container["Path"] = material["Path"]
+            self._cache["material"].append(material)
+
+    def save_assigned_materials(self, assets):
+        len_ = len(assets)
+        self._cache["assigned_asset"] = {}
+        for i in range(0, len_-1, 2):
+            name = "model_{0}".format(assets[i])
+            self._cache["assigned_asset"][name] = assets[i+1]
+
+    def save_metadata_file(self):
         with open(self._metadata_path, 'w') as metadata_file:
-            mesh_data = json.load(metadata_file)
-            base = {}
-            for model in models:
-                name = "model_{0}".format(model)
-                base[name] = None
-            base["material"] = []
-            mesh_data.dump(base)
-        metadata_file.close()
-
-    def collect_materials(self):
-        materials = []
-        with open(self._metadata_path, 'r') as metadata_file:
-            material_data = json.load(metadata_file)
-            for row in material_data["material"]:
-                material = {}
-                material["Name"] = material_data["Name"]
-                material["UDIM"] = bool(material_data["UDIM"])
-                material["Path"] = material_data["Path"]
-                materials.append(material)
-        return materials
-
-    def save_assigned_material(self, model, material):
-        with open(self._metadata_path, "a+") as metadata_file:
-            material_data = json.load(metadata_file)
-            name = "model_{0}".format(model)
-            material_data[name] = material
-            json.dumps(material_data)
+            json.dump(self._cache, metadata_file, indent=2)
+        self._cache = {}

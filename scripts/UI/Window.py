@@ -140,15 +140,17 @@ class MaterialHandlerWindow(QMainWindow):
             file_path = "{0}/{1}".format(self._dir_path, file_name)
             tex_manager = MayaMaterial.TextureFileManager(file_path)
             tex_manager.get_texture_info()
-            if not self._materials:
+            if self._materials:
                 if self._materials[i]["Name"] == tex_manager.name:
                     continue
             material = {"Name": tex_manager.name, "UDIM": tex_manager.udim, "Path": file_path}
             self._materials.append(material)
             i += 1
 
-    def create_material_table(self):
+    def create_material_table(self, load=False):
         self.LOG.message("Create Material Table")
+        if load:
+            return False
         if not self._metadata.check_existence():
             self._get_materials()
             materials = self._materials
@@ -161,6 +163,7 @@ class MaterialHandlerWindow(QMainWindow):
         self._setting.show()
         self._widget.table_mesh.adjustSize()
         self.LOG.message("Completed Creation of Material Table")
+        return True
 
     def get_directory(self):
         self.LOG.message("Get Directory Path")
@@ -179,6 +182,7 @@ class MaterialHandlerWindow(QMainWindow):
             self._materials[i]["DISMAP"] = self._setting.table_material.cellWidget(i, 6).isChecked()
         self._models = [mesh for mesh in cmds.ls(typ="mesh") if "polySurfaceShape" not in mesh]
         material_names = [item.get("Name") for item in self._materials]
+        self._metadata.collect_materials(self._materials)
         self._widget.table_mesh.set_rows(self._models, material_names)
         self._widget.table_mesh.set_header()
         self._setting.close()
@@ -191,21 +195,24 @@ class MaterialHandlerWindow(QMainWindow):
         self.LOG.message("Run Creation Of Materials")
         result = False
         message = "There Are No Targets"
+        cache = []
         len_ = len(self._models)
-        metadata_path = self._metadata.set_model_metadata(models=self._models)
         for i in range(len_):
             try:
                 index = self._widget.table_mesh.cellWidget(i, 1).currentIndex()
                 assigner = MaterialGenerator.MaterialAssigner(self._models[i], self._materials[index])
                 next(assigner.assign_materials())
                 assigner.set_ui()
-                self._metadata.save_assigned_material(self._models[i], self._materials[index])
+                cache.extend([self._models[i], self._materials[index]["Name"]])
                 result = True
                 message = "Completed Creation Of Materials"
             except:
                 message = "Failed Creation Of Materials"
                 break
         if result:
+            self._metadata.save_assigned_materials(cache)
+            self._metadata.save_metadata_file()
+            del cache
             QMessageBox.information(self, "Completed", message, QMessageBox.Ok)
         else:
             QMessageBox.critical(self, "Failed", message, QMessageBox.Ok)
@@ -227,6 +234,6 @@ def launch_window():
     material_manager = MaterialHandlerWindow(maya_window)
     material_manager.set_workspace_setting()
     material_manager.get_saved_setting()
-    material_manager.get_workspace_materials()
+    # material_manager.get_workspace_materials()
     material_manager.create_material_table(load=True)
     material_manager.show()
