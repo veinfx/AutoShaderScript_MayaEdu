@@ -65,7 +65,8 @@ class MayaMaterialManager(BaseMaterialManager):
             self.node, texNode = self._renderer_shader, self.node
             self.connect_attribute(texNode, src_attr, attr_=dst_attr)
         else:
-            self.LOG.error("Failed Setting Addtional Attributes:SRC:{}:DST:{}".format(src_attr, dst_attr))
+            message = "Failed Setting Addtional Attributes:SRC:{}:DST:{}".format(src_attr, dst_attr)
+            self.LOG.error("MayaMaterialManager.set_additional_attributes", message)
 
     def create_material(self, path, udim):
         self.create_renderer_group()
