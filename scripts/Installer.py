@@ -19,7 +19,7 @@ def get_user_info():
     if platform.system() == "Windows":
         NAME = os.getenv("USERNAME")
         MAYA_PATH = "C:/Users/{0}/Documents/maya".format(NAME)
-        ENV_SETTING = "PYTHONPATH={0}/scripts\n".format(MAYA_PATH)
+        ENV_SETTING = "{0}/scripts\n".format(MAYA_PATH)
     if NAME is None or MAYA_PATH is None:
         NAME = None
         MAYA_PATH = None
@@ -45,7 +45,11 @@ def set_environment_variables():
     with open(maya_env_path, 'a+') as env_file:
         lines = env_file.readlines()
         if ENV_SETTING not in lines:
-            env_file.write(ENV_SETTING)
+            if "PYTHONPATH" not in lines:
+                line = "PYTHONPATH = {0}".format(ENV_SETTING)
+            else:
+                line = ";{0}".format(ENV_SETTING)
+            env_file.write(line)
 
 
 def create_custom_shelf_backup():
@@ -68,7 +72,8 @@ def create_shelf_icon():
     command = "from AutoShaderScript_MayaEdu.scripts.UI import Window\n"
     command += "mat = Window.launch_window()\n"
 
-    cmds.shelfButton(ann="MatHandler", p="Custom", iol="Mat", i=icon_path, c=command)
+    if cmds.shelfButton("MatHandler", ex=False):
+        cmds.shelfButton("MatHandler", ann="MatHandler", p="Custom", iol="Mat", i=icon_path, c=command)
 
 
 if __name__ == "__main__":

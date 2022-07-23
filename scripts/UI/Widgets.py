@@ -2,7 +2,7 @@
 
 from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject)
 from PySide2.QtWidgets import (QPushButton, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QWidget,
-                               QAbstractScrollArea)
+                               QAbstractScrollArea, QStackedWidget, QGroupBox, QStackedLayout)
 
 
 class MeshTable(QTableWidget):
@@ -36,19 +36,27 @@ class MeshTable(QTableWidget):
 class MaterialManagerWidgets(QWidget):
     def __init__(self):
         super(MaterialManagerWidgets, self).__init__()
+        self.stack = QStackedWidget()
         self.table_mesh = MeshTable()
         self.btn_assign = QPushButton()
         self.btn_setting = QPushButton()
 
     def setup_widget(self, manager):
         manager.setObjectName("MaterialManagerWindow")
+        main_layout = QVBoxLayout()
         layout = QVBoxLayout()
+        group = QGroupBox()
+        stacked_layout = self.stack.layout()
+        stacked_layout.setStackingMode(QStackedLayout.StackAll)
 
         layout.addWidget(self.table_mesh)
         layout.addWidget(self.btn_assign)
         layout.addWidget(self.btn_setting)
 
-        self.setLayout(layout)
+        group.setLayout(layout)
+        self.stack.addWidget(group)
+        main_layout.addWidget(self.stack)
+        self.setLayout(main_layout)
         self.retranslate_widget(manager)
         QMetaObject.connectSlotsByName(manager)
 

@@ -5,8 +5,7 @@ import json
 import maya.cmds as cmds
 
 from functools import partial
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import (QMainWindow, QMessageBox, QDesktopWidget, QFileDialog)
+from PySide2.QtWidgets import (QMainWindow, QMessageBox, QDesktopWidget, QFileDialog, QWidget)
 
 from ..UI import Widgets
 from ..UI import SettingDialog
@@ -14,10 +13,6 @@ from ..UI import SettingDialog
 from ..Lib import MayaMaterial
 from ..Lib import MaterialManager
 from ..Lib import Log
-
-from imp import reload
-reload(MayaMaterial)
-reload(MaterialManager)
 
 RENDERER = cmds.getAttr("defaultRenderGlobals.currentRenderer")
 if RENDERER == "vray":
@@ -39,6 +34,7 @@ class MaterialHandlerWindow(QMainWindow):
         self._widget = Widgets.MaterialManagerWidgets()
         self._setting = SettingDialog.SettingDialogWidget(parent)
         self._metadata = MaterialManager.MaterialMetadata()
+        self._background = None
         self._dir_path = None
         self._event = None
 
@@ -52,11 +48,12 @@ class MaterialHandlerWindow(QMainWindow):
         self._widget.table_mesh.cellClicked.connect(self.select_mesh)
         self._widget.btn_assign.clicked.connect(self.run)
         self._widget.btn_setting.clicked.connect(self.get_setting_dialog)
+        self._setting.finished.connect(self.set_dimmed)
         self._setting.btn_find.clicked.connect(self.get_directory)
         self._setting.check_non_root.stateChanged.connect(self.disable_adding_material)
         self._setting.btn_add_row.clicked.connect(self.add_material)
-        self._setting.btn_delete_row.clicked.connect(self._setting.table_material.delete_rows)
-        self._setting.btn_delete_rows.clicked.connect(partial(self._setting.table_material.delete_rows, True))
+        self._setting.btn_delete_row.clicked.connect(self.delete_rows)
+        self._setting.btn_delete_rows.clicked.connect(partial(self.delete_rows, True))
         self._setting.btn_load.clicked.connect(self.create_material_table)
         self._setting.btn_define.clicked.connect(self.setup_base)
 
@@ -67,8 +64,34 @@ class MaterialHandlerWindow(QMainWindow):
         height = main_monitor.height() * 0.3
         self.resize(width, height)
 
+    def set_dimmed(self, active=False):
+        if active:
+            self._background = QWidget(objectName="background")
+            stylesheet = """
+                         #background {
+                             background: rgba(64, 64, 64, 64)
+                         }
+                         MaterialHandlerWindow {
+                             background: palette(window);
+                             border: 1px outset palette(window);
+                             border-radius: 5px;
+                         }
+                         """
+            self._background.setStyleSheet(stylesheet)
+            self._widget.stack.addWidget(self._background)
+            self._widget.stack.setCurrentWidget(self._background)
+        else:
+            if self.findChild(QWidget, "background"):
+                self._background.deleteLater()
+
     def _add_selection_callback(self):
         self._event = cmds.scriptJob(e=["SelectionChanged", self.add_selections_from_viewport])
+
+    def delete_rows(self, all=False):
+        self._setting.table_material.delete_rows(all)
+        counts = self._setting.table_material.rowCount()
+        if counts == 0:
+            self._setting.btn_define.setEnabled(False)
 
     def add_selections_from_viewport(self):
         viewport_selection = cmds.ls(sl=True)
@@ -83,13 +106,14 @@ class MaterialHandlerWindow(QMainWindow):
             self._widget.table_mesh.clearSelection()
 
     def set_workspace_setting(self):
-        workspace_path = cmds.workspace(q=True, rd=True)
-        scene_path = cmds.file(q=True, exn=True)
+        if not self._metadata.check_existence():
+            workspace_path = cmds.workspace(q=True, rd=True)
+            scene_path = cmds.file(q=True, exn=True)
 
-        if workspace_path in scene_path:
-            source_image_name = cmds.workspace(fre="sourceImages")
-            source_image_path = "{0}/{1}".format(workspace_path, source_image_name)
-            self._setting.edit_directory.setText(source_image_path)
+            if workspace_path in scene_path:
+                source_image_name = cmds.workspace(fre="sourceImages")
+                source_image_path = "{0}/{1}".format(workspace_path, source_image_name)
+                self._setting.edit_directory.setText(source_image_path)
 
     def get_saved_setting(self):
         if self._metadata.check_existence():
@@ -118,9 +142,12 @@ class MaterialHandlerWindow(QMainWindow):
                 self._widget.table_mesh.set_header()
 
     def get_setting_dialog(self):
+        self._setting.check_non_root.setChecked(False)
         self._setting.btn_add_row.setEnabled(False)
         self._setting.btn_delete_row.setEnabled(False)
         self._setting.btn_delete_rows.setEnabled(False)
+        self.set_dimmed(active=True)
+        self._setting.btn_define.setEnabled(False)
         self._setting.show()
 
     def disable_adding_material(self):
@@ -137,6 +164,7 @@ class MaterialHandlerWindow(QMainWindow):
         if self._setting.check_non_root.checkState():
             self._setting.table_material.add_empty_row()
             self._setting.table_material.set_header()
+        self._setting.btn_define.setEnabled(True)
 
     def _get_materials(self):
         i = -1
@@ -165,18 +193,18 @@ class MaterialHandlerWindow(QMainWindow):
                 self._setting.close()
                 self._setting.show()
             self._widget.table_mesh.adjustSize()
+            self._setting.btn_define.setEnabled(True)
             self.LOG.message("Completed Creation of Material Table")
             return True
         return False
 
     def get_directory(self):
         self.LOG.message("Get Directory Path")
-        self._dir_path = QFileDialog.getExistingDirectory()
+        directory = self._setting.edit_directory.text()
+        self._dir_path = QFileDialog.getExistingDirectory(caption="Find Texture Directory", dir=directory)
         if self._dir_path:
             self._setting.edit_directory.setText(self._dir_path)
-            self.LOG.message("Completed Getting Directory Path: {}".format(self._dir_path))
-        else:
-            self.LOG.error("MaterialHandlerWindow.get_directory", "Failed Getting Directory Path")
+            self.LOG.message("Completed Getting Directory Path: {0}".format(self._dir_path))
 
     def setup_base(self):
         self.LOG.message("Set Up Preparation For Base Setting")
@@ -194,13 +222,16 @@ class MaterialHandlerWindow(QMainWindow):
                 self._models.pop(index_)
         if self._models:
             self._metadata.collect_materials(self._materials)
+            self.set_dimmed()
             self._widget.table_mesh.set_rows(self._models, material_names)
             self._widget.table_mesh.set_header()
+            self._widget.btn_assign.setEnabled(True)
             self._setting.close()
             message = "Completed to create materials!"
             QMessageBox.information(self, "Completed", message, QMessageBox.Ok)
         else:
             self._setting.close()
+            self.set_dimmed()
             message = "There is no models to which materials assign!"
             QMessageBox.critical(self, "Failed", message, QMessageBox.Ok)
             self.LOG.error("MaterialHandlerWindow.setup_base", message)
@@ -241,6 +272,9 @@ class MaterialHandlerWindow(QMainWindow):
         else:
             QMessageBox.critical(self, "Failed", message, QMessageBox.Ok)
 
+    def showEvent(self, event):
+        self._widget.btn_assign.setEnabled(False)
+
     def closeEvent(self, event):
         cmds.scriptJob(k=self._event)
 
@@ -261,6 +295,5 @@ def launch_window():
     material_manager = MaterialHandlerWindow(maya_window)
     material_manager.set_workspace_setting()
     material_manager.get_saved_setting()
-    # material_manager.get_workspace_materials()
     material_manager.create_material_table(load=True)
     material_manager.show()
