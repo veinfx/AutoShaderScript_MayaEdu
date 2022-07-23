@@ -13,9 +13,9 @@ ENV_SETTING = None
 def get_user_info():
     global NAME, MAYA_PATH, MAYA_VERSION, ENV_SETTING
 
-    maya_version = cmds.about(v=True)
-    if '.' in maya_version:
-        MAYA_VERSION = maya_version.split('.')[0]
+    MAYA_VERSION = cmds.about(v=True)
+    if '.' in MAYA_VERSION:
+        MAYA_VERSION = MAYA_VERSION.split('.')[0]
     if platform.system() == "Windows":
         NAME = os.getenv("USERNAME")
         MAYA_PATH = "C:/Users/{0}/Documents/maya".format(NAME)
