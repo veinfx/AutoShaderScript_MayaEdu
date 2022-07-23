@@ -32,6 +32,9 @@ class MaterialMetadata:
         else:
             return False
 
+    def set_texture_root_path(self, path):
+        self._cache["root_texture_path"] = path
+
     def collect_materials(self, materials):
         self._cache["material"] = []
         for material in materials:
@@ -43,10 +46,10 @@ class MaterialMetadata:
 
     def save_assigned_materials(self, assets):
         len_ = len(assets)
-        self._cache["assigned_asset"] = {}
+        self._cache["assigned_asset"] = []
         for i in range(0, len_-1, 2):
-            name = "model_{0}".format(assets[i])
-            self._cache["assigned_asset"][name] = assets[i+1]
+            asset = {"Name": assets[i], "Material": assets[i+1]}
+            self._cache["assigned_asset"].append(asset)
 
     def save_metadata_file(self):
         with open(self._metadata_path, 'w') as metadata_file:
