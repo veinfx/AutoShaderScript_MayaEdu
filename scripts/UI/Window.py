@@ -147,7 +147,8 @@ class MaterialHandlerWindow(QMainWindow):
         self._setting.btn_delete_row.setEnabled(False)
         self._setting.btn_delete_rows.setEnabled(False)
         self.set_dimmed(active=True)
-        self._setting.btn_define.setEnabled(False)
+        if not self._metadata.check_existence():
+            self._setting.btn_define.setEnabled(False)
         self._setting.show()
 
     def disable_adding_material(self):
@@ -273,7 +274,8 @@ class MaterialHandlerWindow(QMainWindow):
             QMessageBox.critical(self, "Failed", message, QMessageBox.Ok)
 
     def showEvent(self, event):
-        self._widget.btn_assign.setEnabled(False)
+        if not self._metadata.check_existence():
+            self._widget.btn_assign.setEnabled(False)
 
     def closeEvent(self, event):
         cmds.scriptJob(k=self._event)

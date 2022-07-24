@@ -5,8 +5,8 @@ This script is for artists who personally use Maya like Education or Indie versi
 (This update just supports Windows. Later, other OS will be added in a support list.)
 1. Put a root directory(AutoShaderScript_MayaEdu) into a Maya scripts directory.
 * Windows: C:\\Users\\{user_directory}\\Documents\\maya\\scripts
-2. Open installer.py on Script Editor and run it.
-* Path: ../AutoShaderScript_MayaEdu/scripts/installer.py
+2. Copy and paste lines of Installer.py on Script Editor and run it.
+* Path: ../AutoShaderScript_MayaEdu/scripts/Installer.py
 
 ## How to use
 1. Click _Setting_ button on a main window
