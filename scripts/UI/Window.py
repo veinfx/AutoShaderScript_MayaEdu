@@ -31,6 +31,7 @@ class MaterialHandlerWindow(QMainWindow):
         self.setObjectName("MaterialHandler")
         self._models = []
         self._materials = []
+        self._assigned_materials = {}
         self._widget = Widgets.MaterialManagerWidgets()
         self._setting = SettingDialog.SettingDialogWidget(parent)
         self._metadata = MaterialManager.MaterialMetadata()
@@ -137,7 +138,8 @@ class MaterialHandlerWindow(QMainWindow):
                 for asset in material_data["assigned_asset"]:
                     self._widget.table_mesh.insertRow(j)
                     self._widget.table_mesh.set_row(j, asset["Name"], material_names)
-                    self._widget.table_mesh.cellWidget(j, 1).setCurrentText(asset["Material"])
+                    self._widget.table_mesh.cellWidget(j, 1).setCurrentText(asset["Material"][-1])
+                    self._assigned_materials[asset["Name"]] = asset["Material"]
                     j += 1
                 self._widget.table_mesh.set_header()
 
@@ -222,7 +224,6 @@ class MaterialHandlerWindow(QMainWindow):
                 index_ = self._models.index(model_name)
                 self._models.pop(index_)
         if self._models:
-            self._metadata.collect_materials(self._materials)
             self.set_dimmed()
             self._widget.table_mesh.set_rows(self._models, material_names)
             self._widget.table_mesh.set_header()
@@ -245,11 +246,12 @@ class MaterialHandlerWindow(QMainWindow):
             cmds.select(cl=True)
 
     def run(self):
-        self.LOG.message("Run Creation Of Materials")
+        self.LOG.message("Run Creation of Materials")
         result = False
         message = "There Are No Targets"
         cache = []
         len_ = self._widget.table_mesh.rowCount()
+        self._metadata.collect_materials(self._materials)
         for i in range(len_):
             try:
                 name = self._widget.table_mesh.item(i, 0).text()
@@ -259,16 +261,19 @@ class MaterialHandlerWindow(QMainWindow):
                 assigner.set_ui()
                 cache.extend([name, self._materials[index]["Name"]])
                 result = True
-                message = "Completed Creation Of Materials"
+                message = "Completed Creation of Materials"
             except:
-                message = "Failed Creation Of Materials"
+                message = "Failed Creation of Materials"
                 break
         if result:
             directory = self._setting.edit_directory.text()
             self._metadata.set_texture_root_path(directory)
-            self._metadata.save_assigned_materials(cache)
+            if self._metadata.check_existence():
+                self._assigned_materials[cache[0]].append(cache[1])
+            else:
+                self._assigned_materials[cache[0]] = [cache[1]]
+            self._metadata.save_assigned_materials(self._assigned_materials)
             self._metadata.save_metadata_file()
-            del cache
             QMessageBox.information(self, "Completed", message, QMessageBox.Ok)
         else:
             QMessageBox.critical(self, "Failed", message, QMessageBox.Ok)
