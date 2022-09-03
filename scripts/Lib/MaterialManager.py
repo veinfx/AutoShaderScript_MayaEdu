@@ -47,8 +47,8 @@ class MaterialMetadata:
     def save_assigned_materials(self, assets):
         len_ = len(assets)
         self._cache["assigned_asset"] = []
-        for i in range(0, len_-1, 2):
-            asset = {"Name": assets[i], "Material": assets[i+1]}
+        for name in assets.keys():
+            asset = {"Name": name, "Material": assets[name]}
             self._cache["assigned_asset"].append(asset)
 
     def save_metadata_file(self):
